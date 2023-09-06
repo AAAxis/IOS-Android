@@ -18,7 +18,7 @@ if (flutterVersionCode == null) {
 
 def flutterVersionName = localProperties.getProperty('flutter.versionName')
 if (flutterVersionName == null) {
-    flutterVersionName = '1.0'
+    flutterVersionName = '1.1'
 }
 
 apply plugin: 'com.android.application'
@@ -35,9 +35,9 @@ android {
 
     signingConfigs {
         release {
-            storeFile file('/Users/admin/order_app/my-release-key.keystore')
+            storeFile file('/Users/admin/Documents/GitHub/wheels-flutter/order_app/release.keystore')
             storePassword '123456'
-            keyAlias 'my-key-alias'
+            keyAlias 'key'
             keyPassword '123456'
         }
     }

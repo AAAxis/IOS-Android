@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>868698601721-cirhsmene2313dm3q8668l4pi0gdsdlm.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.868698601721-cirhsmene2313dm3q8668l4pi0gdsdlm</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>868698601721-ljo16r33pv9hasdcup4h0t2lig9hrv91.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyA80Zdxm2zI06IT4B3ESuTzgNdgedhPgOo</string>
+	<key>GCM_SENDER_ID</key>
+	<string>868698601721</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.wheels.orderapp</string>
+	<key>PROJECT_ID</key>
+	<string>bankapp-9798a</string>
+	<key>STORAGE_BUCKET</key>
+	<string>bankapp-9798a.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:868698601721:ios:ebe3a2e4404a741b854a28</string>
+</dict>
+</plist>
