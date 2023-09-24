@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:order_app/mainScreens/home_screen.dart';
+
 import '../authentication/auth_screen.dart';
 import '../global/global.dart';
 
@@ -23,15 +24,16 @@ class PaymentPage extends StatefulWidget {
 
 class _PaymentPageState extends State<PaymentPage> {
   bool hasAddress = false;
+  TextEditingController addressController = TextEditingController();
 
   Future<void> _displayUserInfo(BuildContext context) async {
-    final TextEditingController addressController = TextEditingController();
-
     final name = sharedPreferences!.getString("name") ?? "No Name";
     final email = sharedPreferences!.getString("email") ?? "No Email";
-    final address = sharedPreferences!.getString("address") ?? "No Address";
+    final address = sharedPreferences!.getString("address") ?? "";
 
-    addressController.text = address; // Set the initial value of the address
+    setState(() {
+      addressController.text = address; // Set the initial value of the address
+    });
 
     showDialog(
       context: context,
@@ -61,7 +63,8 @@ class _PaymentPageState extends State<PaymentPage> {
                   'name': name,
                 };
 
-                final apiUrl = 'https://polskoydm.pythonanywhere.com/payment/${widget
+                final apiUrl =
+                    'https://polskoydm.pythonanywhere.com/payment/${widget
                     .orderId}';
                 final response = await http.post(
                   Uri.parse(apiUrl),
@@ -99,6 +102,25 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
+  void _clearCart(BuildContext context) {
+    setState(() {
+      widget.cartItems.clear();
+      // You can also reset the total or perform any other necessary actions here.
+    });
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HomeScreen(),
+      ),
+    );
+  }
+
+  bool isUserAuthenticated() {
+    return firebaseAuth.currentUser != null;
+  }
+
+  // ...
+
   @override
   Widget build(BuildContext context) {
     final isUserAuthenticated = firebaseAuth.currentUser != null;
@@ -110,7 +132,37 @@ class _PaymentPageState extends State<PaymentPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(height: 20),
+          Image.network(
+            'https://polskoydm.pythonanywhere.com/static/images/map.png',
+            height: 250,
+            fit: BoxFit.cover,
+          ),
+          // Always display the address section
+          InkWell(
+            onTap: () => _displayUserInfo(context),
+            child: Container(
+              color: Colors.yellow[200],
+              padding: EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(Icons.home),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      sharedPreferences!.getString("address") ?? "No Address",
+                      style: TextStyle(
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Icon(Icons.edit),
+                ],
+              ),
+            ),
+          ),
+
+          // Display cart items
           Expanded(
             child: ListView.builder(
               itemCount: widget.cartItems.length,
@@ -119,85 +171,110 @@ class _PaymentPageState extends State<PaymentPage> {
                 return ListTile(
                   title: Text(cartItem['name']),
                   subtitle: Text('Quantity: ${cartItem['quantity']}'),
-                  trailing: Text(
-                      '\$${cartItem['price'] * cartItem['quantity']}'),
+                  trailing: Text('\$${cartItem['price'] * cartItem['quantity']}'),
                 );
               },
             ),
           ),
-          SizedBox(height: 20),
-          Container(
+
+          // Clear cart button
+          Align(
             alignment: Alignment.center,
-            child: SizedBox(
-              width: 100, // Set a fixed width for the button
-              child: RawMaterialButton(
-                onPressed: isUserAuthenticated
-                    ? hasAddress
-                    ? null
-                    : () => _displayUserInfo(context)
-                    : () {
-                  // Navigate to the login screen when the user is not authenticated
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          AuthScreen(), // Replace with your login screen
-                    ),
-                  );
-                },
-                fillColor: Colors.red, // Set button color to red
+            child: ElevatedButton(
+              onPressed: () => _clearCart(context),
+              style: ElevatedButton.styleFrom(
+                primary: Colors.red,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                      20), // Set rounded corners
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10),
-                  child: Text(
-                    isUserAuthenticated ? 'Add Address' : 'Login',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14, // Adjust font size
-                      color: Colors.white, // Set text color to white
-                    ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.clear, size: 18),
+                  SizedBox(width: 5),
+                  Text(
+                    'Clear Cart',
+                    style: TextStyle(fontSize: 14),
                   ),
-                ),
+                ],
               ),
             ),
           ),
+
           Divider(),
+
+          // Display total
           ListTile(
             title: Text('Total'),
             trailing: Text('\$${widget.total.toStringAsFixed(2)}'),
           ),
           SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: hasAddress
-                ? () async {
-              final url =
-                  'https://polskoydm.pythonanywhere.com/create-checkout-session/${widget
-                  .orderId}';
-              if (await canLaunch(url)) {
-                // Launch the URL
-                await launch(url);
 
-                // After the link is closed, navigate to a different page
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        HomeScreen(), // Replace with the desired page
-                  ),
-                );
-              } else {
-                // Handle the case where the URL can't be launched.
-                print('Could not launch $url');
+          // Conditionally display the "Proceed to Payment" button
+          isUserAuthenticated
+              ? Container(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: hasAddress
+                  ? () async {
+                final url =
+                    'https://polskoydm.pythonanywhere.com/create-checkout-session/${widget.orderId}';
+                if (await canLaunch(url)) {
+                  await launch(url);
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => HomeScreen(),
+                    ),
+                  );
+                } else {
+                  print('Could not launch $url');
+                }
               }
-            }
-                : null,
-            child: Text('Proceed to Payment'),
-          ),
+                  : null,
+              style: ElevatedButton.styleFrom(
+                primary: Colors.black,
+                shape: RoundedRectangleBorder(),
+                fixedSize: Size.fromHeight(60), // Set button height
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 15),
+                child: Text(
+                  'Proceed to Payment',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 25,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          )
+              : SizedBox(), // Hide the button if the user is not logged in
         ],
+      ),
+      bottomNavigationBar: isUserAuthenticated
+          ? null
+          : Container(
+        padding: EdgeInsets.all(16),
+        color: Colors.black,
+        child: ElevatedButton(
+          onPressed: () async {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => AuthScreen()),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            primary: Colors.black, // Make the button black
+            shape: RoundedRectangleBorder(),
+            fixedSize: Size.fromHeight(60), // Set button height
+          ),
+          child: Text('Login'),
+        ),
       ),
     );
   }
+
 }

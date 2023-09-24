@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:order_app/authentication/auth_screen.dart';
 import 'package:order_app/global/global.dart';
@@ -6,11 +5,8 @@ import 'package:order_app/mainScreens/home_screen.dart';
 import 'package:order_app/mainScreens/history_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'dart:io';
-
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MyDrawer extends StatefulWidget {
   @override
@@ -21,14 +17,11 @@ class _MyDrawerState extends State<MyDrawer> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>(); // Initialize formKey
 
-
-
-
-  void updatePhotoUrl(String newPhotoUrl) {
-    setState(() {
-      sharedPreferences!.setString("photoUrl", newPhotoUrl);
-    });
+  @override
+  void initState() {
+    super.initState();
   }
 
   void deleteUserDataFromFirestore() async {
@@ -46,14 +39,11 @@ class _MyDrawerState extends State<MyDrawer> {
     }
   }
 
-
   void updateName(String newName) {
     setState(() {
       sharedPreferences!.setString("name", newName);
     });
   }
-
-
 
   void updateAddress(String newAddress) {
     setState(() {
@@ -66,7 +56,6 @@ class _MyDrawerState extends State<MyDrawer> {
       sharedPreferences!.setString("phone", newPhone);
     });
   }
-
 
   Future<void> signOutAndClearPrefs(BuildContext context) async {
     // Sign out the user
@@ -83,12 +72,10 @@ class _MyDrawerState extends State<MyDrawer> {
     );
   }
 
-  @override
-  void dispose() {
-    nameController.dispose();
-    addressController.dispose();
-    phoneController.dispose();
-    super.dispose();
+  bool isPhoneNumberValid(String? value) {
+    if (value == null) return false;
+    final RegExp regex = RegExp(r'^\+\d{11}$');
+    return regex.hasMatch(value);
   }
 
   @override
@@ -100,72 +87,6 @@ class _MyDrawerState extends State<MyDrawer> {
             padding: const EdgeInsets.only(top: 25, bottom: 10),
             child: Column(
               children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Material(
-                      borderRadius: const BorderRadius.all(Radius.circular(80)),
-                      elevation: 10,
-                      child: Padding(
-                        padding: const EdgeInsets.all(1.0),
-                        child: Container(
-                          height: 160,
-                          width: 160,
-                          child: CircleAvatar(
-                            backgroundImage: NetworkImage(
-                              sharedPreferences!.getString("photoUrl")!,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: InkWell(
-                        onTap: () async {
-                          final picker = ImagePicker();
-                          final pickedFile = await picker.getImage(source: ImageSource.gallery);
-
-                          if (pickedFile != null) {
-                            final user = FirebaseAuth.instance.currentUser;
-                            if (user != null) {
-                              final storageRef = FirebaseStorage.instance.ref().child('user_images/${user.uid}.jpg');
-                              final imageFile = File(pickedFile.path);
-
-                              // Upload the selected image to Firebase Storage
-                              final uploadTask = storageRef.putFile(imageFile);
-                              final snapshot = await uploadTask.whenComplete(() => null);
-
-                              // Get the download URL of the uploaded image
-                              final downloadUrl = await snapshot.ref.getDownloadURL();
-
-                              // Update user's photoUrl in Firestore
-                              final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-                              await userDocRef.update({'userAvatarUrl': downloadUrl});
-
-                              // Update user's photoUrl in SharedPreferences
-                              updatePhotoUrl(downloadUrl);
-                            }
-                          }
-                          Navigator.pop(context); // Close the dialog
-                        },
-
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.blue,
-                          ),
-                          child: Icon(
-                            Icons.edit,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
                 const SizedBox(height: 10,),
               ],
             ),
@@ -181,21 +102,32 @@ class _MyDrawerState extends State<MyDrawer> {
                   builder: (context) {
                     return AlertDialog(
                       title: const Text("Edit Name"),
-                      content: TextField(
-                        controller: nameController,
-                        decoration: const InputDecoration(labelText: "Name"),
+                      content: Form(
+                        key: formKey,
+                        child: TextFormField(
+                          controller: nameController,
+                          decoration: const InputDecoration(labelText: "Name"),
+                          validator: (value) {
+                            if (value?.isEmpty ?? true) {
+                              return 'Please enter your name';
+                            }
+                            return null;
+                          },
+                        ),
                       ),
                       actions: [
                         TextButton(
                           onPressed: () async {
-                            final newName = nameController.text;
-                            final user = FirebaseAuth.instance.currentUser;
-                            if (user != null) {
-                              final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-                              await userDocRef.update({'name': newName});
-                              updateName(newName);
+                            if (formKey.currentState?.validate() ?? false) {
+                              final newName = nameController.text;
+                              final user = FirebaseAuth.instance.currentUser;
+                              if (user != null) {
+                                final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+                                await userDocRef.update({'name': newName});
+                                updateName(newName);
+                              }
+                              Navigator.pop(context);
                             }
-                            Navigator.pop(context);
                           },
                           child: const Text("Save"),
                         ),
@@ -225,7 +157,6 @@ class _MyDrawerState extends State<MyDrawer> {
             ),
           ),
 
-
           ListTile(
             leading: const Icon(Icons.location_on, color: Colors.black,),
             title: GestureDetector(
@@ -235,21 +166,32 @@ class _MyDrawerState extends State<MyDrawer> {
                   builder: (context) {
                     return AlertDialog(
                       title: const Text("Edit Address"),
-                      content: TextField(
-                        controller: addressController,
-                        decoration: const InputDecoration(labelText: "Address"),
+                      content: Form(
+                        key: formKey,
+                        child: TextFormField(
+                          controller: addressController,
+                          decoration: const InputDecoration(labelText: "Address"),
+                          validator: (value) {
+                            if (value?.isEmpty ?? true) {
+                              return 'Please enter your address';
+                            }
+                            return null;
+                          },
+                        ),
                       ),
                       actions: [
                         TextButton(
                           onPressed: () async {
-                            final newAddress = addressController.text;
-                            final user = FirebaseAuth.instance.currentUser;
-                            if (user != null) {
-                              final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-                              await userDocRef.update({'address': newAddress});
-                              updateAddress(newAddress);
+                            if (formKey.currentState?.validate() ?? false) {
+                              final newAddress = addressController.text;
+                              final user = FirebaseAuth.instance.currentUser;
+                              if (user != null) {
+                                final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+                                await userDocRef.update({'address': newAddress});
+                                updateAddress(newAddress);
+                              }
+                              Navigator.pop(context);
                             }
-                            Navigator.pop(context);
                           },
                           child: const Text("Save"),
                         ),
@@ -284,21 +226,32 @@ class _MyDrawerState extends State<MyDrawer> {
                   builder: (context) {
                     return AlertDialog(
                       title: const Text("Edit Phone Number"),
-                      content: TextField(
-                        controller: phoneController,
-                        decoration: const InputDecoration(labelText: "Phone Number"),
+                      content: Form(
+                        key: formKey,
+                        child: TextFormField(
+                          controller: phoneController,
+                          decoration: const InputDecoration(labelText: "Phone Number"),
+                          validator: (value) {
+                            if (!isPhoneNumberValid(value)) {
+                              return 'Please enter a valid phone number';
+                            }
+                            return null;
+                          },
+                        ),
                       ),
                       actions: [
                         TextButton(
                           onPressed: () async {
-                            final newPhone = phoneController.text;
-                            final user = FirebaseAuth.instance.currentUser;
-                            if (user != null) {
-                              final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-                              await userDocRef.update({'phone': newPhone});
-                              updatePhone(newPhone);
+                            if (formKey.currentState?.validate() ?? false) {
+                              final newPhone = phoneController.text;
+                              final user = FirebaseAuth.instance.currentUser;
+                              if (user != null) {
+                                final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+                                await userDocRef.update({'phone': newPhone});
+                                updatePhone(newPhone);
+                              }
+                              Navigator.pop(context);
                             }
-                            Navigator.pop(context);
                           },
                           child: const Text("Save"),
                         ),
@@ -320,7 +273,6 @@ class _MyDrawerState extends State<MyDrawer> {
           ),
 
           // Other list items
-
 
           ListTile(
             leading: const Icon(Icons.delete, color: Colors.red),
@@ -371,11 +323,51 @@ class _MyDrawerState extends State<MyDrawer> {
               Navigator.push(context, MaterialPageRoute(builder: (c) => const HomeScreen()));
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.language, color: Colors.black,),
+            title: const Text(
+              "Language: English (Canada)",
+              style: TextStyle(color: Colors.black),
+            ),
+          ),
 
           ListTile(
-            leading: const Icon(Icons.history, color: Colors.black,),
+            leading: const Icon(Icons.smartphone, color: Colors.black),
             title: const Text(
-              "History",
+              "Contact Us",
+              style: TextStyle(color: Colors.black),
+            ),
+            onTap: () async {
+              const url = 'https://www.wheels.works'; // Replace with the URL you want to open
+              if (await canLaunch(url)) {
+                await launch(url);
+              } else {
+                // Handle the case where the URL can't be launched, e.g., show an error message.
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: const Text("Error"),
+                      content: const Text("Unable to open the link."),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          child: const Text("OK"),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              }
+            },
+          ),
+
+          ListTile(
+            leading: const Icon(Icons.takeout_dining, color: Colors.black,),
+            title: const Text(
+              "Recent Orders",
               style: TextStyle(color: Colors.black),
             ),
             onTap: () {
@@ -392,7 +384,6 @@ class _MyDrawerState extends State<MyDrawer> {
               signOutAndClearPrefs(context);
             },
           )
-
         ],
       ),
     );

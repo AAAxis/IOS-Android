@@ -62,7 +62,6 @@ class _MySplashScreenState extends State<MySplashScreen> {
 
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -72,8 +71,14 @@ class _MySplashScreenState extends State<MySplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset("images/splash.jpg"),
-
+              ClipRRect(
+                borderRadius: BorderRadius.circular(100.0), // Adjust the radius as needed
+                child: SizedBox(
+                  width: 250, // Adjust the width as needed
+                  height: 250, // Adjust the height as needed
+                  child: Image.asset("images/splash.jpg"),
+                ),
+              ),
               const SizedBox(height: 10,),
               const Padding(
                 padding: const EdgeInsets.all(18.0),
@@ -104,4 +109,5 @@ class _MySplashScreenState extends State<MySplashScreen> {
     );
   }
 }
+
 
