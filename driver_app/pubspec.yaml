@@ -1,4 +1,4 @@
-name: order_app
+name: driver_app
 description: A new Flutter project.
 
 # The following line prevents the package from being accidentally published to
@@ -36,32 +36,15 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.5
-  google_maps_flutter: ^2.2.0
-  maps_launcher: ^2.2.0
-  flutter_staggered_grid_view: ^0.4.0
-  firebase_core_platform_interface: ^4.8.0
   shared_preferences: ^2.0.15
-  firebase_core: ^2.15.1
-  firebase_auth: ^4.7.3
   http: ^1.1.0
-  webview_flutter: ^3.0.0
-  cloud_firestore: ^4.8.5
-  firebase_storage: ^11.2.6
-  image_picker: ^0.8.4+2
-  carousel_slider: ^4.1.1
-  number_inc_dec: ^0.8.0
-  fluttertoast: ^8.0.8
-  provider: ^6.0.1
-  url_launcher: ^6.1.12
-  flutter_stripe: ^9.3.0
-  geocoding: ^2.0.5
-  geolocator: ^10.0.0
-  intl: ^0.18.1
-  google_sign_in: ^5.2.1
-  sign_in_with_apple: ^5.0.0
-  sign_in_button: ^3.2.0
-  the_apple_sign_in: ^1.1.1
   app_tracking_transparency: ^2.0.0
+  url_launcher: ^6.1.14
+  maps_launcher: ^2.2.0
+  google_maps_flutter: ^2.0.10
+  permission_handler: ^11.0.0
+  geocoding: ^2.1.0
+
 
 
 dev_dependencies:
@@ -105,20 +88,6 @@ flutter:
   assets:
     - images/
 
-
-  fonts:
-    - family: Bebas
-      fonts:
-        - asset: assets/fonts/BebasNeue-Regular.ttf
-    - family: Lobster
-      fonts:
-        - asset: assets/fonts/Lobster-Regular.ttf
-    - family: Signatra
-      fonts:
-        - asset: assets/fonts/Signatra.ttf
-    - family: Varela
-      fonts:
-        - asset: assets/fonts/VarelaRound-Regular.ttf
 
   #
   # For details regarding fonts from package dependencies,
