@@ -44,6 +44,7 @@ dependencies:
   google_maps_flutter: ^2.0.10
   permission_handler: ^11.0.0
   geocoding: ^2.1.0
+  bottom_navy_bar: ^6.0.0  # Use the latest version
 
 
 

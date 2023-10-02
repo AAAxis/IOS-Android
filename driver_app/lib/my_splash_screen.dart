@@ -1,5 +1,6 @@
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
-import 'package:driver_app/home_page.dart';
+import 'package:driver_app/home_screen.dart';
+import 'package:driver_app/order_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'auth_screen.dart';
@@ -32,7 +33,7 @@ class SplashScreenRouter extends StatelessWidget {
           final userEmail = snapshot.data;
           if (userEmail != null) {
             // Email found in SharedPreferences, navigate to home screen
-            return HomePage(); // Replace with your actual home screen widget
+            return MyHomePage(); // Replace with your actual home screen widget
           }
         }
 
@@ -70,7 +71,7 @@ class _MySplashScreenState extends State<MySplashScreen> {
 
     if (userEmail != null) {
       // User's email found in SharedPreferences, navigate to home screen
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => HomePage()));
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => MyHomePage()));
     } else {
       setState(() {
         _isLoading = false; // Email not found, stop showing loading indicator
@@ -93,7 +94,7 @@ class _MySplashScreenState extends State<MySplashScreen> {
     }
 
     // Continue with your application flow after checking tracking permission
-    Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage()));
+    Navigator.push(context, MaterialPageRoute(builder: (context) => MyHomePage()));
   }
 
   void _becomeDriver() {
