@@ -6,7 +6,6 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:order_app/global/global.dart';
 import 'package:order_app/splashScreen/splash_screen.dart';
 import 'package:order_app/widgets/my_drawer.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../authentication/auth_screen.dart';
 import 'menu_page.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -174,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
       } else {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (c) => AuthScreen()),
+          MaterialPageRoute(builder: (c) => MergedLoginScreen()),
         );
       }
     } else if (index == 2) {

@@ -263,7 +263,7 @@ class _PaymentPageState extends State<PaymentPage> {
           onPressed: () async {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => AuthScreen()),
+              MaterialPageRoute(builder: (context) => MergedLoginScreen()),
             );
           },
           style: ElevatedButton.styleFrom(

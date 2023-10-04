@@ -35,7 +35,7 @@ class _MyDrawerState extends State<MyDrawer> {
       await FirebaseAuth.instance.signOut();
 
       // Navigate to the authentication screen
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AuthScreen()));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MergedLoginScreen()));
     }
   }
 
@@ -68,7 +68,7 @@ class _MyDrawerState extends State<MyDrawer> {
     // Navigate to the AuthScreen
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => AuthScreen()),
+      MaterialPageRoute(builder: (context) => MergedLoginScreen()),
     );
   }
 
