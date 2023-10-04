@@ -83,10 +83,10 @@ class _AccountPageState extends State<AccountPage> {
               ),
               child: Center(
                 child: Text(
-                  '${driver.earnings.toStringAsFixed(0)} CAD',
+                  '\$${driver.earnings.toStringAsFixed(0)}',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 30,
+                    fontSize: 40,
                   ),
                   textAlign: TextAlign.center,
                 ),

@@ -113,13 +113,6 @@ class _OrderCardState extends State<OrderCard> {
               Text('Are you sure you want to mark this order as picked up?'),
               SizedBox(height: 10.0),
 
-              ElevatedButton(
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  _showUserOnMap();
-                },
-                child: Text('Show Destination'),
-              ),
             ],
           ),
           actions: <Widget>[
@@ -309,7 +302,6 @@ class _OrderCardState extends State<OrderCard> {
           ),
 
           // Show different UI based on the order status
-          // Show different UI based on the order status
           if (!isCompleted)
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -359,7 +351,17 @@ class _OrderCardState extends State<OrderCard> {
                           child: Text('Complete'),
                         ),
                       ),
-
+                      Container(
+                        margin: EdgeInsets.all(10.0),
+                        child:
+                        ElevatedButton(
+                          onPressed: () async {
+                            Navigator.of(context).pop();
+                            _showUserOnMap();
+                          },
+                          child: Text('Show Destination'),
+                        ),
+                      )
                     ],
                   ),
 
