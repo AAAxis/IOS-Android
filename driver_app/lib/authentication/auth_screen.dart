@@ -9,7 +9,7 @@ import 'package:the_apple_sign_in/the_apple_sign_in.dart';
 import 'package:http/http.dart' as http;
 
 import '../global/global.dart';
-import '../mainScreens/home_screen.dart';
+import '../home_screen.dart';
 import '../widgets/error_dialog.dart';
 
 final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -346,7 +346,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
 
           Navigator.pop(context);
           Navigator.push(
-              context, MaterialPageRoute(builder: (c) => const HomeScreen()));
+              context, MaterialPageRoute(builder: (c) => MyHomePage()));
         } else {
           _auth.signOut();
           Navigator.pop(context);
