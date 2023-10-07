@@ -127,18 +127,17 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
           String userEmail = userCredential.user?.email ?? "";
 
           DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-              .collection("users")
+              .collection("drivers")
               .doc(uid)
               .get();
 
           if (!userSnapshot.exists) {
             // User doesn't exist, create a new document in the "users" collection
-            await FirebaseFirestore.instance.collection("users").doc(uid).set({
+            await FirebaseFirestore.instance.collection("drivers").doc(uid).set({
               "uid": uid,
               "email": userEmail,
               "name": "Add Full Name",
               "phone": "Add Phone Number",
-              "address": "Add Delivery Address",
               "userAvatarUrl":
               "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png",
               "status": "approved",
@@ -234,20 +233,19 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                 sharedPreferences!.getBool("tracking") ?? false;
 
             DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-                .collection("users")
+                .collection("drivers")
                 .doc(uid)
                 .get();
 
             if (!userSnapshot.exists) {
               await FirebaseFirestore.instance
-                  .collection("users")
+                  .collection("drivers")
                   .doc(uid)
                   .set({
                 "uid": uid,
                 "email": userCredential.user!.email,
                 "name": "Add Full Name",
                 "phone": "Add Phone Number",
-                "address": "Add Delivery Address",
                 "userAvatarUrl":
                 "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png",
                 "status": "approved",
@@ -297,7 +295,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
           String userName = user.displayName ?? "";
 
           DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-              .collection("users")
+              .collection("drivers")
               .doc(uid)
               .get();
 
@@ -305,7 +303,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
             bool trackingPermissionStatus =
                 sharedPreferences!.getBool("tracking") ?? false;
 
-            FirebaseFirestore.instance.collection("users").doc(uid).set({
+            FirebaseFirestore.instance.collection("driver").doc(uid).set({
               "uid": uid,
               "email": userEmail,
               "name": userName,
@@ -327,7 +325,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
 
   Future readDataAndSetDataLocally(User currentUser) async {
     await FirebaseFirestore.instance
-        .collection("users")
+        .collection("drivers")
         .doc(currentUser.uid)
         .get()
         .then((snapshot) async {
@@ -341,8 +339,6 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
               "photoUrl", snapshot.data()!["userAvatarUrl"]);
           await sharedPreferences!.setString(
               "phone", snapshot.data()!["phone"]);
-          await sharedPreferences!.setString(
-              "address", snapshot.data()!["address"]);
 
           Navigator.pop(context);
           Navigator.push(
