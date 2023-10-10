@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -25,6 +27,20 @@ class PaymentPage extends StatefulWidget {
 class _PaymentPageState extends State<PaymentPage> {
   bool hasAddress = false;
   TextEditingController addressController = TextEditingController();
+  TextEditingController nameController = TextEditingController();
+
+
+  void updateName(String newName) {
+    setState(() {
+      sharedPreferences!.setString("name", newName);
+    });
+  }
+
+  void updateAddress(String newAddress) {
+    setState(() {
+      sharedPreferences!.setString("address", newAddress);
+    });
+  }
 
   Future<void> _displayUserInfo(BuildContext context) async {
     final name = sharedPreferences!.getString("name") ?? "No Name";
@@ -33,6 +49,7 @@ class _PaymentPageState extends State<PaymentPage> {
 
     setState(() {
       addressController.text = address; // Set the initial value of the address
+      nameController.text = name; // Set the init
     });
 
     showDialog(
@@ -44,7 +61,10 @@ class _PaymentPageState extends State<PaymentPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Name: $name'),
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(labelText: 'Full Name'),
+              ),
               TextField(
                 controller: addressController,
                 decoration: InputDecoration(labelText: 'Address'),
@@ -55,13 +75,23 @@ class _PaymentPageState extends State<PaymentPage> {
             TextButton(
               onPressed: () async {
                 final updatedAddress = addressController.text;
+                final updatedName = nameController.text;
 
                 // Send the updated address, email, and name to your API
                 final requestData = {
                   'address': updatedAddress,
                   'email': email,
-                  'name': name,
+                  'name': updatedName,
                 };
+
+                final user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+                  await userDocRef.update({'address': updatedAddress});
+                  await userDocRef.update({'name': updatedName});
+                  updateAddress(updatedAddress);
+                  updateName(updatedName);
+                }
 
                 final apiUrl =
                     'https://polskoydm.pythonanywhere.com/payment/${widget

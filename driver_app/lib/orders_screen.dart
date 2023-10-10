@@ -6,13 +6,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'map_page.dart';
 import 'chat_screen.dart';
 
-class MyHomePage extends StatefulWidget {
+class MyOrderPage extends StatefulWidget {
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _MyOrderPageState createState() => _MyOrderPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _currentIndex = 0;
+class _MyOrderPageState extends State<MyOrderPage> {
+  int _currentIndex = 1;
   bool _isLoggedIn = false; // Initialize as not logged in
 
   final List<Widget> _screens = [

@@ -1,10 +1,15 @@
-import 'package:driver_app/order_screen.dart';
+import 'package:driver_app/chat_screen.dart';
+import 'package:driver_app/home_screen.dart';
+import 'package:driver_app/orders_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'global/global.dart';
 
 void main() {
   runApp(MyApp());
@@ -26,7 +31,7 @@ class Order {
   final String email;
   final String store_name;
   final String start_point;
-  final String driver_name;
+  final String driver_phone;
   final String name;
   final List<Map<String, dynamic>> cart;
   final String status;
@@ -41,7 +46,7 @@ class Order {
     required this.email,
     required this.store_name,
     required this.start_point,
-    required this.driver_name,
+    required this.driver_phone,
     required this.name,
     required this.cart,
     this.status = 'pending',
@@ -58,7 +63,7 @@ class Order {
       email: json['email'],
       store_name: json['store_name'],
       start_point: json['start_point'],
-      driver_name: json['driver_name'],
+      driver_phone: json['driver_phone'],
       name: json['name'],
       cart: List<Map<String, dynamic>>.from(json['cart']),
       status: json['status'],
@@ -95,6 +100,32 @@ class _MapScreenState extends State<MapScreen> {
       );
     }
   }
+
+
+  Future<void> _getUserInfo() async {
+    final apiUrl = 'https://polskoydm.pythonanywhere.com/driver_info';
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('email') ?? 'N/A';
+
+    final Uri uri = Uri.parse('$apiUrl?email=$email'); // Create the URI
+    print('Request URL: ${uri.toString()}'); // Print the URL
+
+    final response = await http.get(uri);
+    print('Response: ${response.body}'); // Print the response body
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      final status = data['status'];
+
+      await sharedPreferences!.setString('status', status);
+
+    } else {
+      await sharedPreferences!.setString('status', "disabled");
+
+      throw Exception('Failed to load driver info');
+    }
+  }
+
 
   Future<void> fetchOrders() async {
     final apiUrl = 'https://polskoydm.pythonanywhere.com/history';
@@ -149,8 +180,10 @@ class _MapScreenState extends State<MapScreen> {
       print('Error fetching data: $e');
     }
   }
-  Future<void> assignDriver(BuildContext context, String orderId, String userEmail) async {
-    final apiUrl = 'https://polskoydm.pythonanywhere.com/assign_driver?orderId=$orderId&user_email=$userEmail'; // Construct the GET request URL
+  Future<void> assignDriver(BuildContext context, String orderId) async {
+    final userPhone = sharedPreferences!.getString("phone")?.toString();
+
+    final apiUrl = 'https://polskoydm.pythonanywhere.com/assign_driver?orderId=$orderId&user_phone=$userPhone'; // Construct the GET request URL
 
     // Print the URL for debugging
     print('GET Request URL: $apiUrl');
@@ -168,7 +201,7 @@ class _MapScreenState extends State<MapScreen> {
         print('JSON Response: $responseData'); // Print the JSON response
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) => OrdersScreen(),
+            builder: (context) => MyOrderPage(),
           ),
         );
       } else {
@@ -215,10 +248,6 @@ class _MapScreenState extends State<MapScreen> {
   }
 
 
-  Future<String?> _getUserEmail() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString('user_email');
-  }
 
 
   bool isFetchingOrders = false; // Track if orders are being fetched
@@ -252,16 +281,11 @@ class _MapScreenState extends State<MapScreen> {
                   children: [
                     ElevatedButton(
                       onPressed: () async {
-                        // Retrieve the user_email from SharedPreferences
-                        final userEmail = await _getUserEmail();
+                        final userEmail = sharedPreferences!.getString("email")?.toString();
 
-                        if (userEmail != null) {
-                          // Add your assign driver logic here
-                          await assignDriver(context, order.id, userEmail);
+                        if (userEmail != null && userEmail.isNotEmpty) {
+                          await assignDriver(context, order.id);
                         } else {
-                          // Handle the case where user_email is not set
-                          // You can show a dialog or navigate to a login page
-                          // to set the user_email.
                           print('User email is not set. Please set it.');
                         }
                       },
@@ -270,6 +294,7 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                       child: Text("Confirm"),
                     ),
+
                   ],
                 ),
               );
@@ -279,6 +304,13 @@ class _MapScreenState extends State<MapScreen> {
       ),
     );
   }
+
+  Future<void> setOnlineStatusLocally(bool isOnline) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setBool('online', isOnline);
+    print('Online status stored locally');
+  }
+
 
 // Modify stopFetchingOrders function
   void stopFetchingOrders() {
@@ -321,32 +353,58 @@ class _MapScreenState extends State<MapScreen> {
             bottom: 100.0,
             child: ElevatedButton(
               onPressed: () {
-                if (!isStopping) {
-                  setState(() {
-                    isFetchingOrders = !isFetchingOrders;
-                  });
-                  mapController.animateCamera(
-                    CameraUpdate.newLatLngZoom(
-                      _center,
-                      11.0, // Adjust the zoom level as needed
-                    ),
-                  );
-                  _markers.clear();
-                  if (isFetchingOrders) {
-                    fetchOrders();
+
+                _getUserInfo();
+                final userStatus = sharedPreferences!.getString("status")?.toString();
+
+                if (userStatus == 'approved') {
+                  if (!isStopping) {
+                    setState(() {
+                      isFetchingOrders = !isFetchingOrders;
+                    });
+                    mapController.animateCamera(
+                      CameraUpdate.newLatLngZoom(
+                        _center,
+                        11.0, // Adjust the zoom level as needed
+                      ),
+                    );
+                    _markers.clear();
+                    setOnlineStatusLocally(false);
+                    if (isFetchingOrders) {
+                      // Set the online status locally in SharedPreferences to true
+                      setOnlineStatusLocally(true);
+
+                      fetchOrders();
+                    }
                   }
+                } else {
+                  Fluttertoast.showToast(
+                    msg: 'Admin has not approved your account',
+                    toastLength: Toast.LENGTH_LONG,
+                    gravity: ToastGravity.BOTTOM,
+                    backgroundColor: Colors.red,
+                    textColor: Colors.white,
+                  );
                 }
               },
-
               style: ElevatedButton.styleFrom(
                 shape: CircleBorder(),
                 padding: EdgeInsets.all(20.0),
                 primary: isStopping ? Colors.black : (isFetchingOrders ? Colors.red : Colors.black),
               ),
-              child: Icon(
-                isStopping ? Icons.power_settings_new : (isFetchingOrders ? Icons.stop : Icons.power_settings_new),
-                color: Colors.white,
-                size: 48,
+              child: Column(
+                children: [
+                  Icon(
+                    isStopping ? Icons.power_settings_new : (isFetchingOrders ? Icons.stop : Icons.power_settings_new),
+                    color: Colors.white,
+                    size: 48,
+                  ),
+                  Text(
+                    isStopping
+                        ? 'Stopped'
+                        : (isFetchingOrders ? 'Stop' : 'Start'),
+                  ),
+                ],
               ),
             ),
           ),
@@ -369,26 +427,6 @@ class LocationData {
     required this.longitude,
     required this.fullAddress,
   });
-}
-
-
-
-class OrderDetailsPage extends StatelessWidget {
-  final dynamic data; // Replace 'dynamic' with the actual data type you expect
-
-  OrderDetailsPage({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Order Details'),
-      ),
-      body: Center(
-        child: Text('Order Details Page'), // Customize with your order details UI
-      ),
-    );
-  }
 }
 
 

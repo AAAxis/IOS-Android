@@ -1,33 +1,91 @@
+import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:driver_app/authentication/auth_screen.dart';
 import 'package:driver_app/global/global.dart';
-import 'package:driver_app/home_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class MyDrawer extends StatefulWidget {
+class MyDrawerPage extends StatefulWidget {
   @override
-  _MyDrawerState createState() => _MyDrawerState();
+  _MyDrawerPageState createState() => _MyDrawerPageState();
 }
 
-class _MyDrawerState extends State<MyDrawer> {
+class _MyDrawerPageState extends State<MyDrawerPage> {
   final TextEditingController nameController = TextEditingController();
-  final TextEditingController addressController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>(); // Initialize formKey
+
 
   @override
   void initState() {
     super.initState();
   }
 
-  void deleteUserDataFromFirestore() async {
+  Future<void> _showEarningsDialog(BuildContext context) async {
+    try {
+      final apiUrl = 'https://polskoydm.pythonanywhere.com/driver_info';
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString('email') ?? 'N/A';
+
+      final Uri uri = Uri.parse('$apiUrl?email=$email'); // Create the URI
+      print('Request URL: ${uri.toString()}'); // Print the URL
+
+      final response = await http.get(uri);
+      print('Response: ${response.body}'); // Print the response body
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final status = data['status'];
+        final money = data['money'];
+        await sharedPreferences!.setString('status', status);
+        await sharedPreferences!.setInt('money', money);
+
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Earnings'),
+              content: SingleChildScrollView(  // Wrap content in SingleChildScrollView
+                child: Column(
+                  children: [
+
+                    Text('My Balance: $money'),
+                    // Add more earnings content here as needed
+                    // If the content exceeds the available space, it will become scrollable.
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('Close'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        await sharedPreferences!.setString('status', "disabled");
+        throw Exception('Failed to load driver info');
+      }
+    } catch (e) {
+      // Handle any exceptions that occur during the request
+      print('Error fetching user info: $e');
+      // You can add error handling logic here, e.g., showing an error message to the user.
+    }
+  }
+
+
+  void deleteProfileAndSignOut() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       // Delete user data from Firestore
-      final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final userDocRef = FirebaseFirestore.instance.collection('drivers').doc(user.uid);
       await userDocRef.delete();
 
       // Sign out the user
@@ -38,33 +96,11 @@ class _MyDrawerState extends State<MyDrawer> {
     }
   }
 
-  void updateName(String newName) {
-    setState(() {
-      sharedPreferences!.setString("name", newName);
-    });
-  }
-
-  void updateAddress(String newAddress) {
-    setState(() {
-      sharedPreferences!.setString("address", newAddress);
-    });
-  }
-
-  void updatePhone(String newPhone) {
-    setState(() {
-      sharedPreferences!.setString("phone", newPhone);
-    });
-  }
 
   Future<void> signOutAndClearPrefs(BuildContext context) async {
-    // Sign out the user
     await FirebaseAuth.instance.signOut();
-
-    // Clear SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-
-    // Navigate to the AuthScreen
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => MergedLoginScreen()),
@@ -77,23 +113,45 @@ class _MyDrawerState extends State<MyDrawer> {
     return regex.hasMatch(value);
   }
 
+
+  void updateName(String newName) {
+    setState(() {
+      sharedPreferences!.setString("name", newName);
+    });
+  }
+
+  void updatePhone(String newPhone) {
+    setState(() {
+      sharedPreferences!.setString("phone", newPhone);
+    });
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    return Drawer(
-      child: ListView(
+
+
+    return Scaffold(
+      body: ListView(
         children: [
           Container(
             padding: const EdgeInsets.only(top: 25, bottom: 10),
             child: Column(
-              children: [
-                const SizedBox(height: 10,),
+              children: const [
+                SizedBox(height: 10),
               ],
             ),
           ),
-          const SizedBox(height: 12,),
-
+          const SizedBox(height: 12),
           ListTile(
-            leading: const Icon(Icons.person, color: Colors.black,),
+            leading: const Icon(Icons.email, color: Colors.white),
+            title: Text(
+              FirebaseAuth.instance.currentUser?.email ?? "No Email",
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.person, color: Colors.white,),
             title: GestureDetector(
               onTap: () {
                 showDialog(
@@ -121,7 +179,7 @@ class _MyDrawerState extends State<MyDrawer> {
                               final newName = nameController.text;
                               final user = FirebaseAuth.instance.currentUser;
                               if (user != null) {
-                                final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+                                final userDocRef = FirebaseFirestore.instance.collection('drivers').doc(user.uid);
                                 await userDocRef.update({'name': newName});
                                 updateName(newName);
                               }
@@ -140,84 +198,16 @@ class _MyDrawerState extends State<MyDrawer> {
                 children: [
                   Text(
                     sharedPreferences!.getString("name") ?? "No Name",
-                    style: TextStyle(color: Colors.black),
+                    style: TextStyle(color: Colors.white),
                   ),
                 ],
               ),
             ),
           ),
 
-          // Display user's email
-          ListTile(
-            leading: const Icon(Icons.email, color: Colors.black,),
-            title: Text(
-              FirebaseAuth.instance.currentUser?.email ?? "No Email",
-              style: TextStyle(color: Colors.black),
-            ),
-          ),
 
           ListTile(
-            leading: const Icon(Icons.location_on, color: Colors.black,),
-            title: GestureDetector(
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: const Text("Edit Address"),
-                      content: Form(
-                        key: formKey,
-                        child: TextFormField(
-                          controller: addressController,
-                          decoration: const InputDecoration(labelText: "Address"),
-                          validator: (value) {
-                            if (value?.isEmpty ?? true) {
-                              return 'Please enter your address';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () async {
-                            if (formKey.currentState?.validate() ?? false) {
-                              final newAddress = addressController.text;
-                              final user = FirebaseAuth.instance.currentUser;
-                              if (user != null) {
-                                final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-                                await userDocRef.update({'address': newAddress});
-                                updateAddress(newAddress);
-                              }
-                              Navigator.pop(context);
-                            }
-                          },
-                          child: const Text("Save"),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    sharedPreferences!.getString("address") ?? "No Address",
-                    style: TextStyle(color: Colors.black),
-                  ),
-                  if (sharedPreferences!.getString("address") == null)
-                    const Text(
-                      "Add Address",
-                      style: TextStyle(color: Colors.blue),
-                    ),
-                ],
-              ),
-            ),
-          ),
-
-          ListTile(
-            leading: const Icon(Icons.phone, color: Colors.black,),
+            leading: const Icon(Icons.phone, color: Colors.white,),
             title: GestureDetector(
               onTap: () {
                 showDialog(
@@ -245,7 +235,7 @@ class _MyDrawerState extends State<MyDrawer> {
                               final newPhone = phoneController.text;
                               final user = FirebaseAuth.instance.currentUser;
                               if (user != null) {
-                                final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+                                final userDocRef = FirebaseFirestore.instance.collection('drivers').doc(user.uid);
                                 await userDocRef.update({'phone': newPhone});
                                 updatePhone(newPhone);
                               }
@@ -264,47 +254,41 @@ class _MyDrawerState extends State<MyDrawer> {
                 children: [
                   Text(
                     sharedPreferences!.getString("phone") ?? "No Phone Number",
-                    style: TextStyle(color: Colors.black),
+                    style: TextStyle(color: Colors.white),
                   ),
                 ],
               ),
             ),
           ),
-
-          // Other list items
-
           ListTile(
-            leading: const Icon(Icons.delete, color: Colors.red),
+            leading: const Icon(Icons.money, color: Colors.white),
+            title: GestureDetector(
+              onTap: () {
+                // Show earnings dialog when the ListTile is tapped
+                _showEarningsDialog(context);
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Earnings',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.exit_to_app, color: Colors.white),
             title: const Text(
-              "Delete Account",
-              style: TextStyle(color: Colors.red),
+              "Sign Out",
+              style: TextStyle(color: Colors.white),
             ),
             onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) {
-                  return AlertDialog(
-                    title: const Text("Delete Account"),
-                    content: const Text("Are you sure you want to delete your account? This action cannot be undone."),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          deleteUserDataFromFirestore();
-                        },
-                        child: const Text("Delete"),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        child: const Text("Cancel"),
-                      ),
-                    ],
-                  );
-                },
-              );
+              signOutAndClearPrefs(context);
             },
           ),
+
 
           const Divider(
             height: 10,
@@ -313,35 +297,16 @@ class _MyDrawerState extends State<MyDrawer> {
           ),
 
           ListTile(
-            leading: const Icon(Icons.home, color: Colors.black,),
-            title: const Text(
-              "Home",
-              style: TextStyle(color: Colors.black),
-            ),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (c) => MyHomePage()));
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.language, color: Colors.black,),
-            title: const Text(
-              "Language: English (Canada)",
-              style: TextStyle(color: Colors.black),
-            ),
-          ),
-
-          ListTile(
-            leading: const Icon(Icons.smartphone, color: Colors.black),
+            leading: const Icon(Icons.smartphone, color: Colors.white),
             title: const Text(
               "Contact Us",
-              style: TextStyle(color: Colors.black),
+              style: TextStyle(color: Colors.white),
             ),
             onTap: () async {
               const url = 'https://www.wheels.works'; // Replace with the URL you want to open
-              if (await canLaunch(url)) {
+              if (await launch(url)) {
                 await launch(url);
               } else {
-                // Handle the case where the URL can't be launched, e.g., show an error message.
                 showDialog(
                   context: context,
                   builder: (context) {
@@ -362,27 +327,50 @@ class _MyDrawerState extends State<MyDrawer> {
               }
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.language, color: Colors.white),
+            title: const Text(
+              "Language: English",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
 
           ListTile(
-            leading: const Icon(Icons.takeout_dining, color: Colors.black,),
+            leading: const Icon(Icons.delete, color: Colors.red),
             title: const Text(
-              "Recent Orders",
-              style: TextStyle(color: Colors.black),
+              "Delete Profile",
+              style: TextStyle(color: Colors.red),
             ),
             onTap: () {
-            // Replace `HistoryScreen()` with your actual history page
+              // Show a confirmation dialog before deleting the profile
+              showDialog(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    title: const Text("Confirm Delete"),
+                    content: const Text("Are you sure you want to delete your profile? This action cannot be undone."),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context); // Close the dialog
+                        },
+                        child: const Text("Cancel"),
+                      ),
+                      TextButton(
+                        onPressed: () {
+
+                          deleteProfileAndSignOut();
+                        },
+                        child: const Text("Delete"),
+                      ),
+                    ],
+                  );
+                },
+              );
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.exit_to_app, color: Colors.black),
-            title: const Text(
-              "Sign Out",
-              style: TextStyle(color: Colors.black),
-            ),
-            onTap: () {
-              signOutAndClearPrefs(context);
-            },
-          )
+
+
         ],
       ),
     );
