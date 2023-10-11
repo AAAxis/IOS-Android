@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:order_app/authentication/auth_screen.dart';
 import 'package:order_app/global/global.dart';
 import 'package:order_app/mainScreens/home_screen.dart';
-import 'package:order_app/mainScreens/history_page.dart';
+import 'package:order_app/mainScreens/chat_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -371,7 +371,7 @@ class _MyDrawerState extends State<MyDrawer> {
               style: TextStyle(color: Colors.black),
             ),
             onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (c) => OrderHistoryPage())); // Replace `HistoryScreen()` with your actual history page
+              Navigator.push(context, MaterialPageRoute(builder: (c) => ChatScreen())); // Replace `HistoryScreen()` with your actual history page
             },
           ),
           ListTile(

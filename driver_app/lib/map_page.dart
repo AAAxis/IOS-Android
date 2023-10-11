@@ -1,5 +1,3 @@
-import 'package:driver_app/chat_screen.dart';
-import 'package:driver_app/home_screen.dart';
 import 'package:driver_app/orders_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -59,16 +57,25 @@ class Order {
     return Order(
       id: json['id'],
       total: json['total'],
-      address: json['address'],
-      email: json['email'],
-      store_name: json['store_name'],
-      start_point: json['start_point'],
-      driver_phone: json['driver_phone'],
-      name: json['name'],
+      address: json['address'] ?? '', // Handle null value with an empty string
+      email: json['email'] ?? '', // Handle null value with an empty string
+      store_name: json['store_name'] ?? '', // Handle null value with an empty string
+      start_point: json['start_point'] ?? '', // Handle null value with an empty string
+      driver_phone: json['driver_phone'] ?? '', // Handle null value with an empty string
+      name: json['name'] ?? '', // Handle null value with an empty string
       cart: List<Map<String, dynamic>>.from(json['cart']),
-      status: json['status'],
+      status: json['status'] ?? '', // Handle null value with an empty string
+      latitude: json['latitude']?.toDouble(), // Convert to double or leave as null
+      longitude: json['longitude']?.toDouble(), // Convert to double or leave as null
+      fullAddress: json['fullAddress'] ?? '', // Handle null value with an empty string
     );
   }
+
+
+
+
+
+
 }
 
 class MapScreen extends StatefulWidget {
@@ -128,7 +135,7 @@ class _MapScreenState extends State<MapScreen> {
 
 
   Future<void> fetchOrders() async {
-    final apiUrl = 'https://polskoydm.pythonanywhere.com/history';
+    final apiUrl = 'https://polskoydm.pythonanywhere.com/online';
     print('Fetching orders from API: $apiUrl');
 
     try {
@@ -265,7 +272,7 @@ class _MapScreenState extends State<MapScreen> {
         duration: Duration(milliseconds: 300),
         height: isStopping
             ? 0.0
-            : (orders.isNotEmpty ? MediaQuery.of(context).size.height * 0.15 : 0.0),
+            : (orders.isNotEmpty ? MediaQuery.of(context).size.height * 0.20 : 0.0),
         child: Container(
           margin: EdgeInsets.only(left: 10.0, right: 10.0),
           color: Colors.white,

@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
-import 'package:driver_app/authentication/auth_screen.dart';
 import 'package:driver_app/home_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import '../global/global.dart';
 
@@ -15,20 +15,10 @@ class MySplashScreen extends StatefulWidget {
 }
 
 class _MySplashScreenState extends State<MySplashScreen> {
-  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance; // Initialize Firebase Auth
 
   void _navigateToHomeScreen() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (c) => MyHomePage()), // Replace 'HomeScreen' with your home screen widget.
-    );
-  }
-
-  void _navigateToLoginScreen() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (c) => MergedLoginScreen()), // Replace 'MergedLoginScreen' with your login screen widget.
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (c) => MyHomePage()));
   }
 
   void _requestPermissionManually() async {
@@ -53,19 +43,11 @@ class _MySplashScreenState extends State<MySplashScreen> {
   void initState() {
     super.initState();
 
-    Future.delayed(Duration(seconds: 2), () async {
-      final prefs = await SharedPreferences.getInstance();
-      final email = prefs.getString('email');
-
-      if (email != null && email.isNotEmpty) {
-        // Email exists in SharedPreferences, navigate to the home screen.
-        _navigateToHomeScreen();
-      } else if (_firebaseAuth.currentUser != null) {
-        // Firebase user is authenticated, navigate to the home screen.
+    Timer(Duration(seconds: 3), () async {
+      if (firebaseAuth.currentUser != null) {
         _navigateToHomeScreen();
       } else {
-        // Neither email in SharedPreferences nor Firebase user authenticated, request tracking permission.
-        _requestPermissionManually();
+        print('Waiting for response');
       }
     });
   }
@@ -75,7 +57,7 @@ class _MySplashScreenState extends State<MySplashScreen> {
     return GestureDetector(
       onVerticalDragEnd: (_) {
         // Handle vertical swipe to continue
-        _navigateToLoginScreen();
+        _requestPermissionManually();
       },
       child: Material(
         child: Container(
@@ -96,7 +78,7 @@ class _MySplashScreenState extends State<MySplashScreen> {
                 Text(
                   "Swipe to Continue >>",
                   style: TextStyle(
-                    color: Colors.black,
+                    color: Colors.black, // Change the color to your preference
                     fontSize: 16,
                   ),
                 ),

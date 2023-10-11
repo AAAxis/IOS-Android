@@ -28,11 +28,19 @@ class _PaymentPageState extends State<PaymentPage> {
   bool hasAddress = false;
   TextEditingController addressController = TextEditingController();
   TextEditingController nameController = TextEditingController();
+  TextEditingController phoneController = TextEditingController();
+
 
 
   void updateName(String newName) {
     setState(() {
       sharedPreferences!.setString("name", newName);
+    });
+  }
+
+  void updatePhone(String newPhone) {
+    setState(() {
+      sharedPreferences!.setString("phone", newPhone);
     });
   }
 
@@ -46,10 +54,12 @@ class _PaymentPageState extends State<PaymentPage> {
     final name = sharedPreferences!.getString("name") ?? "No Name";
     final email = sharedPreferences!.getString("email") ?? "No Email";
     final address = sharedPreferences!.getString("address") ?? "";
+    final phone = sharedPreferences!.getString("phone") ?? "";
 
     setState(() {
       addressController.text = address; // Set the initial value of the address
       nameController.text = name; // Set the init
+      phoneController.text = phone; // Set the init
     });
 
     showDialog(
@@ -69,6 +79,10 @@ class _PaymentPageState extends State<PaymentPage> {
                 controller: addressController,
                 decoration: InputDecoration(labelText: 'Address'),
               ),
+              TextField(
+                controller: phoneController,
+                decoration: InputDecoration(labelText: 'Phone'),
+              ),
             ],
           ),
           actions: [
@@ -76,12 +90,14 @@ class _PaymentPageState extends State<PaymentPage> {
               onPressed: () async {
                 final updatedAddress = addressController.text;
                 final updatedName = nameController.text;
+                final updatedPhone = phoneController.text;
 
                 // Send the updated address, email, and name to your API
                 final requestData = {
                   'address': updatedAddress,
                   'email': email,
                   'name': updatedName,
+                  'phone': updatedPhone,
                 };
 
                 final user = FirebaseAuth.instance.currentUser;
@@ -89,8 +105,10 @@ class _PaymentPageState extends State<PaymentPage> {
                   final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
                   await userDocRef.update({'address': updatedAddress});
                   await userDocRef.update({'name': updatedName});
+                  await userDocRef.update({'phone': updatedPhone});
                   updateAddress(updatedAddress);
                   updateName(updatedName);
+                  updatePhone(updatedPhone);
                 }
 
                 final apiUrl =
