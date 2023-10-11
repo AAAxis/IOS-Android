@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:868698601721:android:66a11742d6892240854a28",
+        "mobilesdk_app_id": "1:868698601721:android:6e342c8e5cd81152854a28",
         "android_client_info": {
-          "package_name": "com.wheels.driver"
+          "package_name": "com.wheels.driverapp"
         }
       },
       "oauth_client": [
@@ -31,10 +31,10 @@
               "client_type": 3
             },
             {
-              "client_id": "868698601721-cirhsmene2313dm3q8668l4pi0gdsdlm.apps.googleusercontent.com",
+              "client_id": "868698601721-4l63gv4g6d5hqv6jri62htgjf8mbanq5.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.wheels.orderapp"
+                "bundle_id": "com.wheels.driver"
               }
             }
           ]
@@ -75,10 +75,10 @@
               "client_type": 3
             },
             {
-              "client_id": "868698601721-cirhsmene2313dm3q8668l4pi0gdsdlm.apps.googleusercontent.com",
+              "client_id": "868698601721-4l63gv4g6d5hqv6jri62htgjf8mbanq5.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.wheels.orderapp"
+                "bundle_id": "com.wheels.driver"
               }
             }
           ]
