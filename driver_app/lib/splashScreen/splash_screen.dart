@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:driver_app/home_screen.dart';
+import 'package:driver_app/authentication/auth_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -36,7 +37,7 @@ class _MySplashScreenState extends State<MySplashScreen> {
     }
 
     // Continue with your application flow after checking tracking permission
-    _navigateToHomeScreen();
+    Navigator.push(context, MaterialPageRoute(builder: (c) => MergedLoginScreen()));
   }
 
   @override

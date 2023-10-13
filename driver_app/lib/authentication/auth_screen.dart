@@ -1,11 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:the_apple_sign_in/the_apple_sign_in.dart';
 import 'package:http/http.dart' as http;
 
 import '../global/global.dart';
@@ -28,32 +26,6 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
 
   bool _isEmailSent = false;
   String? verificationCode;
-
-
-  Future<void> _getUserInfo() async {
-    final apiUrl = 'https://polskoydm.pythonanywhere.com/driver_info';
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('email') ?? 'N/A';
-
-    final Uri uri = Uri.parse('$apiUrl?email=$email'); // Create the URI
-    print('Request URL: ${uri.toString()}'); // Print the URL
-
-    final response = await http.get(uri);
-    print('Response: ${response.body}'); // Print the response body
-
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
-      final status = data['status'];
-
-      await sharedPreferences!.setString('status', status);
-
-    } else {
-      await sharedPreferences!.setString('status', "disabled");
-
-      throw Exception('Failed to load driver info');
-    }
-  }
-
 
 
 
@@ -138,86 +110,184 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
     return emailRegex.hasMatch(email);
   }
 
+
+  Future<void> loginAsGuest(String email, String password) async {
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+
+        // If the user doesn't exist in Firestore, create a new document
+        await FirebaseFirestore.instance.collection("drivers").doc(userCredential.user?.uid).set({
+          "uid": userCredential.user?.uid,
+          "name": "Support",
+          "phone": "+16474724580",
+          "email": "support@theholylabs.com",
+          "userAvatarUrl": "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png",
+          "trackingPermission": false, // Adjust the default value as needed
+        });
+
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
+        prefs.setString("uid", userCredential.user!.uid);
+        prefs.setString("email", "support@theholylabs.com");
+        prefs.setString("name", "Support");
+        prefs.setString("phone", "+16474724580");
+        prefs.setString("userAvatarUrl", "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png");
+        prefs.setBool("tracking", false);
+
+        Navigator.pop(context);
+        Navigator.push(
+            context, MaterialPageRoute(builder: (c) => MyHomePage()));
+
+    } catch (e) {
+      if (e is FirebaseAuthException) {
+        if (e.code == 'email-already-in-use') {
+          try {
+            UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+              email: email,
+              password: password,
+            );
+
+
+          // User already exists in Firestore, proceed as needed
+          final SharedPreferences prefs = await SharedPreferences.getInstance();
+          prefs.setString("uid", userCredential.user!.uid);
+          prefs.setString("email", "support@theholylabs.com");
+          prefs.setString("name", "Support");
+          prefs.setString("phone", "+16474724580");
+          prefs.setString("userAvatarUrl", "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png");
+          prefs.setBool("tracking", false);
+
+          Navigator.pop(context);
+          Navigator.push(
+              context, MaterialPageRoute(builder: (c) => MyHomePage()));
+
+          } catch (e) {
+            // Handle the sign-in error here
+            print('Failed to sign in the user: $e');
+          }
+        } else {
+          // Handle other Firebase Authentication errors for registration
+          print('Failed to create a user account: $e');
+        }
+      }
+    }
+  }
+
+
+
+
   void verify() async {
     final enteredCode = codeController.text;
-    bool trackingPermissionStatus =
-        sharedPreferences!.getBool("tracking") ?? false;
-
+    bool trackingPermissionStatus = sharedPreferences!.getBool("tracking") ?? false;
 
     if (enteredCode == verificationCode) {
-      try {
-        final email = emailController.text.trim();
-        final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-          email: email,
-          password: "passwordless",
-        );
+      final email = emailController.text.trim();
+      final password = "passwordless";
 
-        if (userCredential.user != null) {
+      try {
+        UserCredential userCredential;
+
+        // Attempt to create a user account
+        try {
+          userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
+
           String uid = userCredential.user?.uid ?? "";
           String userEmail = userCredential.user?.email ?? "";
 
+          // Check if the user exists in Firestore
           DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
               .collection("drivers")
               .doc(uid)
               .get();
 
           if (!userSnapshot.exists) {
-            // User doesn't exist, create a new document in the "users" collection
+            // If the user doesn't exist in Firestore, create a new document
             await FirebaseFirestore.instance.collection("drivers").doc(uid).set({
               "uid": uid,
               "name": "Add Full Name",
               "phone": "Add Phone Number",
               "email": userEmail,
-              "userAvatarUrl":
-              "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png",
+              "userAvatarUrl": "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png",
               "trackingPermission": trackingPermissionStatus,
             });
 
             final SharedPreferences prefs = await SharedPreferences.getInstance();
             prefs.setString("email", userEmail);
-
-
-            _getUserInfo();
+            showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: Text('Verification Successful'),
+                  content: Text('You have successfully verified your email.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        // Add your logic to navigate to the next screen or perform other actions
+                        readDataAndSetDataLocally(userCredential.user!);
+                      },
+                      child: Text('OK'),
+                    ),
+                  ],
+                );
+              },
+            );
           }
 
-          showDialog(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                title: Text('Verification Successful'),
-                content: Text('You have successfully verified your email.'),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      // Add your logic to navigate to the next screen or perform other actions
-                      readDataAndSetDataLocally(userCredential.user!);
+
+        } catch (e) {
+          if (e is FirebaseAuthException) {
+            if (e.code == 'email-already-in-use') {
+              // Try to sign in the user with the existing credentials
+              try {
+                userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+                  email: email,
+                  password: password,
+                );
+
+                // Handle a successful sign-in
+                if (userCredential.user != null) {
+
+                  // Continue with your app logic for the authenticated user.
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: Text('Verification Successful'),
+                        content: Text('You have successfully verified your email.'),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              // Add your logic to navigate to the next screen or perform other actions
+                              readDataAndSetDataLocally(userCredential.user!);
+                            },
+                            child: Text('OK'),
+                          ),
+                        ],
+                      );
                     },
-                    child: Text('OK'),
-                  ),
-                ],
-              );
-            },
-          );
+                  );
+                }
+              } catch (e) {
+                // Handle the sign-in error here
+                print('Failed to sign in the user: $e');
+              }
+            } else {
+              // Handle other Firebase Authentication errors
+              print('Failed to create a user account: $e');
+            }
+          }
         }
       } catch (e) {
-        showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: Text('Error'),
-              content: Text('An error occurred while creating the user: $e'),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: Text('OK'),
-                ),
-              ],
-            );
-          },
-        );
+        // Handle errors for Firebase Authentication
+        print('Error: $e');
       }
     } else {
       // Verification failed, show an error dialog
@@ -240,6 +310,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
       );
     }
   }
+
 
 
 
@@ -322,6 +393,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                 ),
               ),
+
 
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
@@ -470,6 +542,32 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                     height: 40,
                     minWidth: 140,
                   ),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.only(top: 16),
+                child: MaterialButton(
+                  onPressed: () {
+                    loginAsGuest("support@theholylabs.com", "passwordless");
+                  },
+                  color: Color(0xffffffff),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                    side: BorderSide(color: Color(0xff9e9e9e), width: 1),
+                  ),
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    "Login as Guest",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      fontStyle: FontStyle.normal,
+                    ),
+                  ),
+                  textColor: Color(0xff000000),
+                  height: 40,
+                  minWidth: 140,
                 ),
               ),
 

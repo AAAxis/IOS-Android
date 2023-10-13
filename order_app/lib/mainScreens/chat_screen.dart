@@ -29,7 +29,6 @@ class _ChatScreenState extends State<ChatScreen> {
   String userPhone = ''; // Store the user's phone number
   List<Map<String, dynamic>> chatRooms = [];
 
-
   @override
   void initState() {
     super.initState();
@@ -46,9 +45,6 @@ class _ChatScreenState extends State<ChatScreen> {
         return Icon(Icons.error); // Return a default icon or handle other cases as needed
     }
   }
-
-
-
 
   Future<void> fetchChats() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -70,7 +66,6 @@ class _ChatScreenState extends State<ChatScreen> {
             chatRooms = List<Map<String, dynamic>>.from(data.map((chatData) {
               String chatId = chatData['id'];
 
-
               // Create a map for the chat room, including driver and user names
               Map<String, dynamic> chatRoom = {
                 'roomName': chatId,
@@ -87,7 +82,6 @@ class _ChatScreenState extends State<ChatScreen> {
               };
 
               return chatRoom;
-
             }).where((chatRoom) =>
             chatRoom != null)); // Filter out null chat rooms
           });
@@ -105,32 +99,44 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black, // Set the background color to black
+        backgroundColor: Colors.black,
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.of(context).pop(); // Navigate back when the back button is pressed
+            Navigator.of(context).pop();
           },
         ),
         title: Text(
           'My Chats',
           style: TextStyle(
-            fontSize: 25.0, // Adjust the font size as needed
-            fontWeight: FontWeight.bold, // Adjust the font weight as needed
+            fontSize: 25.0,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
-
-      body: Column(
+      body: chatRooms.isEmpty
+          ? Center(
+        child: Card(
+          elevation: 2.0,
+          margin: EdgeInsets.all(26.0),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              "You don't have open conversations, Login or Sign up to start messaging",
+              style: TextStyle(
+                fontSize: 16.0,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      )
+          : Column(
         children: [
-
           Expanded(
             child: Container(
               height: MediaQuery.of(context).size.height,
@@ -138,9 +144,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 itemCount: chatRooms.length,
                 itemBuilder: (context, index) {
                   Map<String, dynamic> chatRoom = chatRooms[index];
-                  // Customize the chat room UI based on your data
                   return Card(
-                    elevation: 2.0, // Adjust the elevation as needed
+                    elevation: 2.0,
                     child: ListTile(
                       leading: CircleAvatar(
                         backgroundImage: NetworkImage('https://i.pinimg.com/564x/ba/fd/69/bafd6939587fc13452f170cae8dc3ad8.jpg'),
@@ -153,7 +158,6 @@ class _ChatScreenState extends State<ChatScreen> {
                             case 'assigned':
                               MapsLauncher.launchQuery(chatRoom['startPoint']);
                               break;
-
                             case 'done':
                             // Handle the "done" status action here or leave it empty
                               break;
@@ -162,17 +166,16 @@ class _ChatScreenState extends State<ChatScreen> {
                           }
                         },
                         child: chatRoom['status'].toLowerCase() == 'done'
-                            ? Icon(Icons.done, color: Colors.green) // Display a checkmark icon when status is "done"
+                            ? Icon(Icons.done, color: Colors.green)
                             : _buildIconForStatus(chatRoom['status'].toLowerCase()),
                       ),
-
                       onTap: () {
                         showModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
                           builder: (BuildContext context) {
                             return Container(
-                              height: MediaQuery.of(context).size.height * 0.7, // Adjust the height as needed
+                              height: MediaQuery.of(context).size.height * 0.7,
                               child: ChatRoomScreen(chatRoom: chatRoom),
                             );
                           },
@@ -188,6 +191,4 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-
-
 }

@@ -81,22 +81,6 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
   }
 
 
-  void deleteProfileAndSignOut() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      // Delete user data from Firestore
-      final userDocRef = FirebaseFirestore.instance.collection('drivers').doc(user.uid);
-      await userDocRef.delete();
-
-      // Sign out the user
-      await FirebaseAuth.instance.signOut();
-
-      // Navigate to the authentication screen
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MergedLoginScreen()));
-    }
-  }
-
-
   Future<void> signOutAndClearPrefs(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
     final prefs = await SharedPreferences.getInstance();
@@ -297,13 +281,13 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
           ),
 
           ListTile(
-            leading: const Icon(Icons.smartphone, color: Colors.white),
+            leading: const Icon(Icons.delete, color: Colors.red),
             title: const Text(
-              "Contact Us",
+              "Delete Profile",
               style: TextStyle(color: Colors.white),
             ),
             onTap: () async {
-              const url = 'https://www.wheels.works'; // Replace with the URL you want to open
+              const url = 'https://www.wheels.works/about'; // Replace with the URL you want to open
               if (await launch(url)) {
                 await launch(url);
               } else {
@@ -335,40 +319,6 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
             ),
           ),
 
-          ListTile(
-            leading: const Icon(Icons.delete, color: Colors.red),
-            title: const Text(
-              "Delete Profile",
-              style: TextStyle(color: Colors.red),
-            ),
-            onTap: () {
-              // Show a confirmation dialog before deleting the profile
-              showDialog(
-                context: context,
-                builder: (context) {
-                  return AlertDialog(
-                    title: const Text("Confirm Delete"),
-                    content: const Text("Are you sure you want to delete your profile? This action cannot be undone."),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context); // Close the dialog
-                        },
-                        child: const Text("Cancel"),
-                      ),
-                      TextButton(
-                        onPressed: () {
-
-                          deleteProfileAndSignOut();
-                        },
-                        child: const Text("Delete"),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-          ),
 
 
         ],

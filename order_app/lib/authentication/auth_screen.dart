@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:the_apple_sign_in/the_apple_sign_in.dart';
 import 'package:http/http.dart' as http;
 
@@ -111,78 +112,118 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
     return emailRegex.hasMatch(email);
   }
 
+
   void verify() async {
     final enteredCode = codeController.text;
+    bool trackingPermissionStatus = sharedPreferences!.getBool("tracking") ?? false;
 
     if (enteredCode == verificationCode) {
-      try {
-        final email = emailController.text.trim();
-        final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-          email: email,
-          password: "passwordless",
-        );
+      final email = emailController.text.trim();
+      final password = "passwordless";
 
-        if (userCredential.user != null) {
+      try {
+        UserCredential userCredential;
+
+        // Attempt to create a user account
+        try {
+          userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
+
           String uid = userCredential.user?.uid ?? "";
           String userEmail = userCredential.user?.email ?? "";
 
+          // Check if the user exists in Firestore
           DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
               .collection("users")
               .doc(uid)
               .get();
 
           if (!userSnapshot.exists) {
-            // User doesn't exist, create a new document in the "users" collection
+            // If the user doesn't exist in Firestore, create a new document
             await FirebaseFirestore.instance.collection("users").doc(uid).set({
               "uid": uid,
-              "email": userEmail,
               "name": "Add Full Name",
-              "phone": "Add Phone Number",
-              "address": "Add Delivery Address",
-              "userAvatarUrl":
-              "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png",
               "status": "approved",
+              "phone": "Add Phone Number",
+              "address": "Add Address",
+              "email": userEmail,
+              "userAvatarUrl": "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png",
+              "trackingPermission": trackingPermissionStatus,
             });
+
+            final SharedPreferences prefs = await SharedPreferences.getInstance();
+            prefs.setString("email", userEmail);
+            showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: Text('Verification Successful'),
+                  content: Text('You have successfully verified your email.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        // Add your logic to navigate to the next screen or perform other actions
+                        readDataAndSetDataLocally(userCredential.user!);
+                      },
+                      child: Text('OK'),
+                    ),
+                  ],
+                );
+              },
+            );
           }
 
-          showDialog(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                title: Text('Verification Successful'),
-                content: Text('You have successfully verified your email.'),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      // Add your logic to navigate to the next screen or perform other actions
-                      readDataAndSetDataLocally(userCredential.user!);
+
+        } catch (e) {
+          if (e is FirebaseAuthException) {
+            if (e.code == 'email-already-in-use') {
+              // Try to sign in the user with the existing credentials
+              try {
+                userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+                  email: email,
+                  password: password,
+                );
+
+                // Handle a successful sign-in
+                if (userCredential.user != null) {
+
+                  // Continue with your app logic for the authenticated user.
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: Text('Verification Successful'),
+                        content: Text('You have successfully verified your email.'),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              // Add your logic to navigate to the next screen or perform other actions
+                              readDataAndSetDataLocally(userCredential.user!);
+                            },
+                            child: Text('OK'),
+                          ),
+                        ],
+                      );
                     },
-                    child: Text('OK'),
-                  ),
-                ],
-              );
-            },
-          );
+                  );
+                }
+              } catch (e) {
+                // Handle the sign-in error here
+                print('Failed to sign in the user: $e');
+              }
+            } else {
+              // Handle other Firebase Authentication errors
+              print('Failed to create a user account: $e');
+            }
+          }
         }
       } catch (e) {
-        showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: Text('Error'),
-              content: Text('An error occurred while creating the user: $e'),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: Text('OK'),
-                ),
-              ],
-            );
-          },
-        );
+        // Handle errors for Firebase Authentication
+        print('Error: $e');
       }
     } else {
       // Verification failed, show an error dialog

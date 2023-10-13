@@ -364,16 +364,7 @@ class _MyDrawerState extends State<MyDrawer> {
             },
           ),
 
-          ListTile(
-            leading: const Icon(Icons.takeout_dining, color: Colors.black,),
-            title: const Text(
-              "Recent Orders",
-              style: TextStyle(color: Colors.black),
-            ),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (c) => ChatScreen())); // Replace `HistoryScreen()` with your actual history page
-            },
-          ),
+
           ListTile(
             leading: const Icon(Icons.exit_to_app, color: Colors.black),
             title: const Text(

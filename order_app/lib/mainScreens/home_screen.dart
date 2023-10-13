@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:order_app/global/global.dart';
+import 'package:order_app/mainScreens/chat_screen.dart';
 import 'package:order_app/splashScreen/splash_screen.dart';
 import 'package:order_app/widgets/my_drawer.dart';
 import '../authentication/auth_screen.dart';
@@ -15,73 +16,6 @@ class HomeScreen extends StatefulWidget {
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
-}
-
-class DiscoverScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Discover'),
-      ),
-      body: ListView(
-        children: <Widget>[
-          // Instagram-like post with hiring image and comments
-          _buildInstagramPost(
-            imageUrl: 'https://pbs.twimg.com/media/E7eBwVtVEAk33Sa.png',
-            comments: [
-              'We are hiring,Apply Now!',
-            ],
-          ),
-
-          // Instagram-like post with QR code for discount
-          _buildInstagramPost(
-            imageUrl: 'https://www.qr-code-generator.com/wp-content/themes/qr/new_structure/assets/media/images/api_page/qrcodes/bw/Api_page_-_QR-Code-Generator_com-1.png',
-            comments: [
-              'Use this QR code to get 10% discount!',
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInstagramPost({
-    required String imageUrl,
-    required List<String> comments,
-  }) {
-    return Card(
-      margin: EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          // Post image
-          Image.network(
-            imageUrl,
-            width: double.infinity,
-            height: 200.0,
-            fit: BoxFit.cover,
-          ),
-
-          // Comments section
-          Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: comments
-                  .map(
-                    (comment) => Padding(
-                  padding: EdgeInsets.symmetric(vertical: 4.0),
-                  child: Text(comment),
-                ),
-              )
-                  .toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 
@@ -100,8 +34,8 @@ class _HomeScreenState extends State<HomeScreen> {
   );
 
   BottomNavigationBarItem discoverNavItem = BottomNavigationBarItem(
-    icon: Icon(Icons.qr_code),
-    label: 'Discover',
+    icon: Icon(Icons.chat),
+    label: 'Chat',
   );
 
   late BottomNavigationBarItem meNavItem;
@@ -180,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // Handle the "Discover" tab (index 2) here
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (c) => DiscoverScreen()), // Navigate to DiscoverScreen
+        MaterialPageRoute(builder: (c) => ChatScreen()), // Navigate to DiscoverScreen
       );
     } else {
       setState(() {

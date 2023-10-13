@@ -30,7 +30,6 @@ class _ChatScreenState extends State<ChatScreen> {
   String userPhone = ''; // Store the user's phone number
   List<Map<String, dynamic>> chatRooms = [];
 
-
   @override
   void initState() {
     super.initState();
@@ -47,9 +46,6 @@ class _ChatScreenState extends State<ChatScreen> {
         return Icon(Icons.error); // Return a default icon or handle other cases as needed
     }
   }
-
-
-
 
   Future<void> fetchChats() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -71,41 +67,32 @@ class _ChatScreenState extends State<ChatScreen> {
             chatRooms = List<Map<String, dynamic>>.from(data.map((chatData) {
               String chatId = chatData['id'];
 
+              Map<String, dynamic> chatRoom = {
+                'roomName': chatId,
+                'lastMessage': "Pick Up from",
+                'userName': chatData['name'],
+                'userPhone': chatData['user_phone'],
+                'userCart': chatData['cart'],
+                'storeName': chatData['store_name'],
+                'userAddress': chatData['address'],
+                'startPoint': chatData['start_point'],
+                'status': chatData['status'],
+              };
 
-                // Create a map for the chat room, including driver and user names
-                Map<String, dynamic> chatRoom = {
-                  'roomName': chatId,
-                  'lastMessage': "Pick Up from",
-                  'userName': chatData['name'],
-                  'userPhone': chatData['user_phone'],
-                  'userCart': chatData['cart'],
-                  'storeName': chatData['store_name'],
-                  'userAddress': chatData['address'],
-                  'startPoint': chatData['start_point'],
-                  'status': chatData['status'],
-                };
-
-                return chatRoom;
-
+              return chatRoom;
             }).where((chatRoom) =>
-            chatRoom != null)); // Filter out null chat rooms
+            chatRoom != null));
           });
         } else {
-          // Handle the case where no chat data is available
           print('No chat data available.');
         }
       } else {
-        // Handle API request error
         print('API Request Error: ${response.body}');
       }
     } catch (error) {
-      // Handle API request error
       print('API Request Error: $error');
     }
   }
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -113,14 +100,14 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 37.0, left: 15.0), // Adjust the padding as needed
+            padding: const EdgeInsets.only(top: 37.0, left: 15.0),
             child: Align(
               alignment: Alignment.topLeft,
               child: Text(
                 'My Chats',
                 style: TextStyle(
-                  fontSize: 35.0, // Adjust the font size as needed
-                  fontWeight: FontWeight.bold, // Adjust the font weight as needed
+                  fontSize: 35.0,
+                  fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
@@ -129,13 +116,19 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: Container(
               height: MediaQuery.of(context).size.height,
-              child: ListView.builder(
+              child: chatRooms.isEmpty
+                  ? Center(
+                child: Text(
+                  'No chat available',
+                  style: TextStyle(fontSize: 20.0),
+                ),
+              )
+                  : ListView.builder(
                 itemCount: chatRooms.length,
                 itemBuilder: (context, index) {
                   Map<String, dynamic> chatRoom = chatRooms[index];
-                  // Customize the chat room UI based on your data
                   return Card(
-                    elevation: 2.0, // Adjust the elevation as needed
+                    elevation: 2.0,
                     child: ListTile(
                       leading: CircleAvatar(
                         backgroundImage: NetworkImage('https://i.pinimg.com/564x/ba/fd/69/bafd6939587fc13452f170cae8dc3ad8.jpg'),
@@ -148,7 +141,6 @@ class _ChatScreenState extends State<ChatScreen> {
                             case 'assigned':
                               MapsLauncher.launchQuery(chatRoom['startPoint']);
                               break;
-
                             case 'done':
                             // Handle the "done" status action here or leave it empty
                               break;
@@ -157,17 +149,16 @@ class _ChatScreenState extends State<ChatScreen> {
                           }
                         },
                         child: chatRoom['status'].toLowerCase() == 'done'
-                            ? Icon(Icons.done, color: Colors.green) // Display a checkmark icon when status is "done"
+                            ? Icon(Icons.done, color: Colors.green)
                             : _buildIconForStatus(chatRoom['status'].toLowerCase()),
                       ),
-
                       onTap: () {
                         showModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
                           builder: (BuildContext context) {
                             return Container(
-                              height: MediaQuery.of(context).size.height * 0.7, // Adjust the height as needed
+                              height: MediaQuery.of(context).size.height * 0.7,
                               child: ChatRoomScreen(chatRoom: chatRoom),
                             );
                           },
@@ -183,6 +174,4 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-
-
 }
