@@ -3,8 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:order_app/mainScreens/home_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:order_app/mainScreens/discover_screen.dart';
 
 import '../authentication/auth_screen.dart';
 import '../global/global.dart';
@@ -25,12 +26,90 @@ class PaymentPage extends StatefulWidget {
 }
 
 class _PaymentPageState extends State<PaymentPage> {
+  String selectedPaymentMethod = 'Billa Pay'; // Default to Billa Pay
+  List<String> paymentMethods = ['Billa Pay', 'Credit Card'];
   bool hasAddress = false;
   TextEditingController addressController = TextEditingController();
   TextEditingController nameController = TextEditingController();
   TextEditingController phoneController = TextEditingController();
 
 
+  Future<bool> _sendBillaPayRequest() async {
+    try {
+      final url = 'https://polskoydm.pythonanywhere.com/billapay/${widget.orderId}';
+
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        // No request data in the body
+      );
+
+      print('Request URL: $url'); // Print the URL
+      print('Response: ${response.body}'); // Print the response body
+
+      if (response.statusCode == 200) {
+        // Request was successful
+        _showSuccessDialog();
+        return true;
+      } else {
+        // Request encountered an error
+        _showErrorDialog();
+        return false;
+      }
+    } catch (e) {
+      // Handle exceptions
+      print('Error: $e'); // Print the exception
+      return false;
+    }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Success'),
+          content: Text('Order placed successfully'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                // Close the dialog
+                Navigator.of(context).pop();
+
+                // Navigate to the home page
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => MyHomePage(), // Replace with the actual widget for your home page
+                  ),
+                );
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showErrorDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Error'),
+          content: Text('Not enough money'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   void updateName(String newName) {
     setState(() {
@@ -102,7 +181,8 @@ class _PaymentPageState extends State<PaymentPage> {
 
                 final user = FirebaseAuth.instance.currentUser;
                 if (user != null) {
-                  final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+                  final userDocRef = FirebaseFirestore.instance.collection(
+                      'users').doc(user.uid);
                   await userDocRef.update({'address': updatedAddress});
                   await userDocRef.update({'name': updatedName});
                   await userDocRef.update({'phone': updatedPhone});
@@ -167,7 +247,6 @@ class _PaymentPageState extends State<PaymentPage> {
     return firebaseAuth.currentUser != null;
   }
 
-  // ...
 
   @override
   Widget build(BuildContext context) {
@@ -219,7 +298,8 @@ class _PaymentPageState extends State<PaymentPage> {
                 return ListTile(
                   title: Text(cartItem['name']),
                   subtitle: Text('Quantity: ${cartItem['quantity']}'),
-                  trailing: Text('\$${cartItem['price'] * cartItem['quantity']}'),
+                  trailing: Text(
+                      '\$${cartItem['price'] * cartItem['quantity']}'),
                 );
               },
             ),
@@ -252,11 +332,31 @@ class _PaymentPageState extends State<PaymentPage> {
 
           Divider(),
 
-          // Display total
-          ListTile(
-            title: Text('Total'),
-            trailing: Text('\$${widget.total.toStringAsFixed(2)}'),
+          Row(
+            children: [
+              Expanded(
+                child: ListTile(
+                  title: Text('Total \$${widget.total.toStringAsFixed(2)}'),
+
+                ),
+              ),
+              DropdownButton<String>(
+                value: selectedPaymentMethod,
+                items: paymentMethods.map((String method) {
+                  return DropdownMenuItem<String>(
+                    value: method,
+                    child: Text(method),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    selectedPaymentMethod = newValue!;
+                  });
+                },
+              ),
+            ],
           ),
+
           SizedBox(height: 20),
 
           // Conditionally display the "Proceed to Payment" button
@@ -266,18 +366,24 @@ class _PaymentPageState extends State<PaymentPage> {
             child: ElevatedButton(
               onPressed: hasAddress
                   ? () async {
-                final url =
-                    'https://polskoydm.pythonanywhere.com/create-checkout-session/${widget.orderId}';
-                if (await canLaunch(url)) {
-                  await launch(url);
-                  Navigator.pushReplacement(
-                    context,
+                if (selectedPaymentMethod == 'Billa Pay') {
+                  await _sendBillaPayRequest();
+
+                } else if (selectedPaymentMethod == 'Credit Card') {
+                  final url =
+                      'https://polskoydm.pythonanywhere.com/create-checkout-session/${widget.orderId}';
+                  if (await canLaunch(url)) {
+                    await launch(url);
+                  } else {
+                    print('Could not launch $url');
+                  }
+                  // Navigate to the home page
+                  Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
-                      builder: (context) => HomeScreen(),
+                      builder: (context) => MyHomePage(), // Replace with the actual widget for your home page
                     ),
                   );
-                } else {
-                  print('Could not launch $url');
+
                 }
               }
                   : null,
@@ -289,7 +395,9 @@ class _PaymentPageState extends State<PaymentPage> {
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 15),
                 child: Text(
-                  'Proceed to Payment',
+                  selectedPaymentMethod == 'Billa Pay'
+                      ? 'Proceed to Billa Pay'
+                      : 'Proceed to Credit Card',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 25,
@@ -319,10 +427,9 @@ class _PaymentPageState extends State<PaymentPage> {
             shape: RoundedRectangleBorder(),
             fixedSize: Size.fromHeight(60), // Set button height
           ),
-          child: Text('Login'),
+          child: Text('Login Page'),
         ),
       ),
     );
   }
-
 }

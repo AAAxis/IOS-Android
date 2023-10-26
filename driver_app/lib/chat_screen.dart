@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:driver_app/chat_room.dart';
+import 'package:driver_app/map_page.dart';
+import 'package:driver_app/widgets/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:maps_launcher/maps_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -71,6 +73,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 'roomName': chatId,
                 'lastMessage': "Pick Up from",
                 'userName': chatData['name'],
+                'total': chatData['total'],
                 'userPhone': chatData['user_phone'],
                 'userCart': chatData['cart'],
                 'storeName': chatData['store_name'],
@@ -97,22 +100,23 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
+      appBar: AppBar(
+        title: Text('My Chats'),
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            // Use Navigator to navigate back to the MapScreen
+            Navigator.push(
+                context, MaterialPageRoute(builder: (c) => MyOrderPage()));
+
+          },
+        ),
+      ),
+
+        body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 37.0, left: 15.0),
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: Text(
-                'My Chats',
-                style: TextStyle(
-                  fontSize: 35.0,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
+
           Expanded(
             child: Container(
               height: MediaQuery.of(context).size.height,

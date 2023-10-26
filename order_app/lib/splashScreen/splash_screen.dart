@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:order_app/mainScreens/discover_screen.dart';
 import 'package:order_app/mainScreens/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../global/global.dart';
@@ -17,7 +18,7 @@ class _MySplashScreenState extends State<MySplashScreen> {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance; // Initialize Firebase Auth
 
   void _navigateToHomeScreen() {
-    Navigator.push(context, MaterialPageRoute(builder: (c) => const HomeScreen()));
+    Navigator.push(context, MaterialPageRoute(builder: (c) => MyHomePage()));
   }
 
   void _requestPermissionManually() async {

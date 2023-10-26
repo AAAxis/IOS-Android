@@ -1,13 +1,10 @@
-import 'dart:convert';
+import 'package:driver_app/map_page.dart';
 import 'package:flutter/material.dart';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'package:maps_launcher/maps_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'home_screen.dart';
-
 class ChatRoomScreen extends StatefulWidget {
   final Map<String, dynamic> chatRoom;
 
@@ -23,7 +20,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final TextEditingController messageController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  List<Order> orders = [];
 
 
   @override
@@ -40,7 +36,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(  // Return the AlertDialog widget here
+        return AlertDialog(
           title: Text('Order Details'),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,18 +47,23 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
               // Display order items with images
               for (var item in widget.chatRoom['userCart'])
-                Row(
+                Column(
                   children: [
-                    Image.network(
-                      'https://polskoydm.pythonanywhere.com/static/uploads/${item['image']}',
-                      width: 50,         // Adjust the width as needed
-                      height: 50,        // Adjust the height as needed
+                    Row(
+                      children: [
+                        Image.network(
+                          'https://polskoydm.pythonanywhere.com/static/uploads/${item['image']}',
+                          width: 50,
+                          height: 50,
+                        ),
+                        SizedBox(width: 10.0),
+                        Text('${item['name']} - ${item['quantity']}'),
+                      ],
                     ),
-                    SizedBox(width: 10.0),
-                    Text('${item['name']} - ${item['quantity']} x \$${item['price']}'),
+                    Text('\$${widget.chatRoom['total']}'), // Display the total price
+                    SizedBox(height: 10.0),
                   ],
                 ),
-              SizedBox(height: 10.0),
             ],
           ),
 
@@ -164,7 +165,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   // Navigate to the home screen
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
-                        builder: (BuildContext context) => MyHomePage()),
+                        builder: (BuildContext context) => MapScreen()),
                   );
                 } else {
                   // Handle the error if the API request fails
@@ -226,7 +227,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             text,
             style: TextStyle(
               fontSize: (16.0),
-              color: Colors.white,
+              color: Colors.black,
             ),
           ),
         ),
@@ -238,7 +239,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.chatRoom['roomName']),
+        iconTheme: IconThemeData(color: Colors.black), // Set the icon color to white
+        title: Text(
+          widget.chatRoom['roomName'],
+          style: TextStyle(
+            color: Colors.black, // Set the text color to white
+          ),
+        ),
+
         actions: <Widget>[
           if (!widget.chatRoom['status'].toLowerCase().contains("done"))
           // Conditionally display the "Pick Up" button
@@ -251,7 +259,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 child: Text(
                   "Pick Up",
                   style: TextStyle(
-                    color: Colors.white,
+                    color: Colors.black,
                     fontSize: 18.0,
                   ),
                 ),
@@ -265,7 +273,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               child: Text(
                 "Drop Off",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Colors.black,
                   fontSize: 18.0,
                 ),
               ),

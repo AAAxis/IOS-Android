@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/chat_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:driver_app/authentication/auth_screen.dart';
@@ -262,6 +263,18 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
               ),
             ),
           ),
+          ListTile(
+            leading: const Icon(Icons.history, color: Colors.white),
+            title: const Text(
+              "Ride History",
+              style: TextStyle(color: Colors.white),
+            ),
+            onTap: () {
+              // Email is available, navigate to the drawer page
+              Navigator.push(context, MaterialPageRoute(builder: (c) => ChatScreen()));
+            },
+          ),
+
           ListTile(
             leading: const Icon(Icons.exit_to_app, color: Colors.white),
             title: const Text(

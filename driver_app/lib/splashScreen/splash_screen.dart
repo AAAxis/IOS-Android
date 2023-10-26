@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
-import 'package:driver_app/home_screen.dart';
 import 'package:driver_app/authentication/auth_screen.dart';
+import 'package:driver_app/map_page.dart';
+import 'package:driver_app/widgets/home_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -19,7 +20,7 @@ class _MySplashScreenState extends State<MySplashScreen> {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance; // Initialize Firebase Auth
 
   void _navigateToHomeScreen() {
-    Navigator.push(context, MaterialPageRoute(builder: (c) => MyHomePage()));
+    Navigator.push(context, MaterialPageRoute(builder: (c) => MyOrderPage()));
   }
 
   void _requestPermissionManually() async {
@@ -37,7 +38,7 @@ class _MySplashScreenState extends State<MySplashScreen> {
     }
 
     // Continue with your application flow after checking tracking permission
-    Navigator.push(context, MaterialPageRoute(builder: (c) => MergedLoginScreen()));
+    Navigator.push(context, MaterialPageRoute(builder: (c) => MyOrderPage()));
   }
 
   @override

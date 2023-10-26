@@ -1,18 +1,17 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:driver_app/map_page.dart';
+import 'package:driver_app/widgets/home_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
 import '../global/global.dart';
-import '../home_screen.dart';
 import '../widgets/error_dialog.dart';
 
 final FirebaseAuth _auth = FirebaseAuth.instance;
-final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
-
 class MergedLoginScreen extends StatefulWidget {
   const MergedLoginScreen({Key? key}) : super(key: key);
 
@@ -111,11 +110,11 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
   }
 
 
-  Future<void> loginAsGuest(String email, String password) async {
+  Future<void> loginAsGuest() async {
     try {
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
+        email: "support@theholylabs.com",
+        password: "passwordless",
       );
 
 
@@ -139,15 +138,15 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
 
         Navigator.pop(context);
         Navigator.push(
-            context, MaterialPageRoute(builder: (c) => MyHomePage()));
+            context, MaterialPageRoute(builder: (c) => MyOrderPage()));
 
     } catch (e) {
       if (e is FirebaseAuthException) {
         if (e.code == 'email-already-in-use') {
           try {
             UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-              email: email,
-              password: password,
+              email: "support@theholylabs.com",
+              password: "passwordless",
             );
 
 
@@ -162,7 +161,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
 
           Navigator.pop(context);
           Navigator.push(
-              context, MaterialPageRoute(builder: (c) => MyHomePage()));
+              context, MaterialPageRoute(builder: (c) => MyOrderPage()));
 
           } catch (e) {
             // Handle the sign-in error here
@@ -334,7 +333,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
 
           Navigator.pop(context);
           Navigator.push(
-              context, MaterialPageRoute(builder: (c) => MyHomePage()));
+              context, MaterialPageRoute(builder: (c) => MapScreen()));
 
       } else {
         _auth.signOut();
@@ -394,6 +393,36 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                 ),
               ),
 
+              Padding(
+                padding: EdgeInsets.fromLTRB(0, 8, 0, 0),
+                child: RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: "Continue with Email or",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w400,
+                          fontStyle: FontStyle.normal,
+                          fontSize: 14,
+                          color: Color(0xff9e9e9e),
+                        ),
+                      ),
+                      TextSpan(
+                        text: " login as Guest",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w400,
+                          fontSize: 14,
+                          color: Colors.blue, // You can customize the link's text style
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () {
+                            loginAsGuest();// Add the action to perform when the link is clicked (e.g., navigate to the guest login page)
+                          },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
@@ -544,33 +573,6 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                   ),
                 ),
               ),
-              Padding(
-                padding: EdgeInsets.only(top: 16),
-                child: MaterialButton(
-                  onPressed: () {
-                    loginAsGuest("support@theholylabs.com", "passwordless");
-                  },
-                  color: Color(0xffffffff),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                    side: BorderSide(color: Color(0xff9e9e9e), width: 1),
-                  ),
-                  padding: EdgeInsets.all(16),
-                  child: Text(
-                    "Login as Guest",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w400,
-                      fontStyle: FontStyle.normal,
-                    ),
-                  ),
-                  textColor: Color(0xff000000),
-                  height: 40,
-                  minWidth: 140,
-                ),
-              ),
-
 
             ],
           ),

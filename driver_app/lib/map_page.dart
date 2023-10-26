@@ -1,26 +1,14 @@
-import 'package:driver_app/orders_screen.dart';
+import 'package:driver_app/authentication/auth_screen.dart';
+import 'package:driver_app/chat_screen.dart';
+import 'package:driver_app/widgets/my_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'global/global.dart';
 
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: MapScreen(),
-    );
-  }
-}
 
 class Order {
   final String id;
@@ -70,12 +58,6 @@ class Order {
       fullAddress: json['fullAddress'] ?? '', // Handle null value with an empty string
     );
   }
-
-
-
-
-
-
 }
 
 class MapScreen extends StatefulWidget {
@@ -88,12 +70,31 @@ class _MapScreenState extends State<MapScreen> {
   final LatLng _center = const LatLng(49.28276133580664, -123.120749655962);
   Set<Marker> _markers = {};
   List<Order> orders = [];
+  bool isFetchingOrders = false; // Track if orders are being fetched
+  bool isStopping = false; // Track if "Stop" button is clicked
+// Modify _buildOrderList function
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
     _zoomToFirstOrder();
   }
+  void stopFetchingOrders() {
+    setState(() {
+      isFetchingOrders = false;
+      isStopping = true;
+    });
 
+    // Clear markers from the map
+    _markers.clear();
+
+    // Zoom out to the starting position
+    mapController.animateCamera(
+      CameraUpdate.newLatLngZoom(
+        _center,
+        11.0, // Adjust the zoom level as needed
+      ),
+    );
+  }
   void _zoomToFirstOrder() {
     if (orders.isNotEmpty) {
       final firstOrder = orders.first;
@@ -107,7 +108,6 @@ class _MapScreenState extends State<MapScreen> {
       );
     }
   }
-
 
   Future<void> _getUserInfo() async {
     final apiUrl = 'https://polskoydm.pythonanywhere.com/driver_info';
@@ -132,8 +132,6 @@ class _MapScreenState extends State<MapScreen> {
       throw Exception('Failed to load driver info');
     }
   }
-
-
   Future<void> fetchOrders() async {
     final apiUrl = 'https://polskoydm.pythonanywhere.com/online';
     print('Fetching orders from API: $apiUrl');
@@ -208,7 +206,7 @@ class _MapScreenState extends State<MapScreen> {
         print('JSON Response: $responseData'); // Print the JSON response
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) => MyOrderPage(),
+            builder: (context) => ChatScreen(),
           ),
         );
       } else {
@@ -220,9 +218,6 @@ class _MapScreenState extends State<MapScreen> {
       // Handle the error and show an error message to the user
     }
   }
-
-
-
   Future<LocationData?> getLocationFromAddress(String address) async {
     final apiKey = 'AIzaSyA1Cn3fZigsdTv-4iBocFqo7cWk2Q5I1MA'; // Replace with your Google Maps API key
     final geocodingUrl =
@@ -253,13 +248,14 @@ class _MapScreenState extends State<MapScreen> {
     }
     return null;
   }
+  Future<void> setOnlineStatusLocally(bool isOnline) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setBool('online', isOnline);
+    print('Online status stored locally');
+  }
 
 
 
-
-  bool isFetchingOrders = false; // Track if orders are being fetched
-  bool isStopping = false; // Track if "Stop" button is clicked
-// Modify _buildOrderList function
   Widget _buildOrderList() {
     if (!isFetchingOrders && !isStopping) {
       return SizedBox.shrink(); // Hide the order list when not fetching or stopping
@@ -274,7 +270,7 @@ class _MapScreenState extends State<MapScreen> {
             ? 0.0
             : (orders.isNotEmpty ? MediaQuery.of(context).size.height * 0.20 : 0.0),
         child: Container(
-          margin: EdgeInsets.only(left: 10.0, right: 10.0),
+          margin: EdgeInsets.only(left: 20.0, right: 20.0, bottom: 15.0),
           color: Colors.white,
           child: ListView.builder(
             itemCount: orders.length,
@@ -299,7 +295,13 @@ class _MapScreenState extends State<MapScreen> {
                       style: ElevatedButton.styleFrom(
                         primary: Colors.green,
                       ),
-                      child: Text("Confirm"),
+                      child: Text(
+                        "Confirm",
+                        style: TextStyle(
+                          color: Colors.white, // Set the text color to white
+                        ),
+                      ),
+
                     ),
 
                   ],
@@ -312,31 +314,8 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  Future<void> setOnlineStatusLocally(bool isOnline) async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setBool('online', isOnline);
-    print('Online status stored locally');
-  }
 
 
-// Modify stopFetchingOrders function
-  void stopFetchingOrders() {
-    setState(() {
-      isFetchingOrders = false;
-      isStopping = true;
-    });
-
-    // Clear markers from the map
-    _markers.clear();
-
-    // Zoom out to the starting position
-    mapController.animateCamera(
-      CameraUpdate.newLatLngZoom(
-        _center,
-        11.0, // Adjust the zoom level as needed
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -355,9 +334,37 @@ class _MapScreenState extends State<MapScreen> {
           ),
 
           Positioned(
+            top: 50.0,
+            right: 30.0,
+            child: Card(
+              elevation: 5.0,
+              shape: CircleBorder(),
+              child: IconButton(
+                icon: Icon(
+                  Icons.chat,
+                  size: 30.0,
+                  color: Colors.black,
+                ),
+                onPressed: () async {
+                  // Check if email is available and not empty in SharedPreferences
+                  final email = sharedPreferences!.getString("email");
+                  if (email != null && email.isNotEmpty) {
+                    // Email is available, navigate to the drawer page
+                    Navigator.push(context, MaterialPageRoute(builder: (c) => ChatScreen()));
+                  } else {
+                    // Email is not available, navigate to the login page
+                    Navigator.push(context, MaterialPageRoute(builder: (c) => MergedLoginScreen()));
+                  }
+                },
+              ),
+            ),
+          ),
+
+
+          Positioned(
             left: 50.0,
             right: 50.0,
-            bottom: 100.0,
+            bottom: 210.0,
             child: ElevatedButton(
               onPressed: () {
 
@@ -406,18 +413,18 @@ class _MapScreenState extends State<MapScreen> {
                     color: Colors.white,
                     size: 48,
                   ),
-                  Text(
-                    isStopping
-                        ? 'Stopped'
-                        : (isFetchingOrders ? 'Stop' : 'Start'),
-                  ),
+
                 ],
               ),
             ),
           ),
 
-          // Conditionally show the order list based on isStopping
-          _buildOrderList(),
+          Positioned(
+            bottom: 0, // Position it at the bottom of the screen
+            left: 0, // You can adjust the left position as needed
+            right: 0, // You can adjust the right position as needed
+            child: _buildOrderList(),
+          )
         ],
       ),
     );

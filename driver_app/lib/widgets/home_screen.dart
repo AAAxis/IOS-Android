@@ -1,23 +1,20 @@
 import 'package:driver_app/authentication/auth_screen.dart';
+import 'package:driver_app/map_page.dart';
 import 'package:driver_app/widgets/my_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'map_page.dart';
-import 'chat_screen.dart';
-
-class MyHomePage extends StatefulWidget {
+class MyOrderPage extends StatefulWidget {
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _MyOrderPageState createState() => _MyOrderPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyOrderPageState extends State<MyOrderPage> {
   int _currentIndex = 0;
   bool _isLoggedIn = false; // Initialize as not logged in
 
   final List<Widget> _screens = [
     MapScreen(),
-    ChatScreen(),
     MyDrawerPage(),
   ];
 
@@ -56,7 +53,7 @@ class _MyHomePageState extends State<MyHomePage> {
           currentIndex: _currentIndex,
           selectedItemColor: Colors.black, // Set icon color to black
           onTap: (index) {
-            if (index == 2 && !_isLoggedIn) {
+            if (index == 1 && !_isLoggedIn) {
               // If "Login" button is tapped and not logged in, navigate to AuthScreen
               Navigator.of(context).push(MaterialPageRoute(
                 builder: (context) => MergedLoginScreen(),
@@ -72,10 +69,6 @@ class _MyHomePageState extends State<MyHomePage> {
             BottomNavigationBarItem(
               icon: Icon(Icons.home, size: 35), // Increase icon size
               label: 'Explore', // Label text
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.message, size: 35), // Increase icon size
-              label: 'My Chats', // Label text
             ),
             BottomNavigationBarItem(
               icon: _isLoggedIn

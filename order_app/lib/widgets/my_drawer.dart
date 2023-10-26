@@ -1,71 +1,37 @@
+import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:order_app/authentication/auth_screen.dart';
 import 'package:order_app/global/global.dart';
-import 'package:order_app/mainScreens/home_screen.dart';
-import 'package:order_app/mainScreens/chat_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:order_app/mainScreens/chat_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class MyDrawer extends StatefulWidget {
+class MyDrawerPage extends StatefulWidget {
   @override
-  _MyDrawerState createState() => _MyDrawerState();
+  _MyDrawerPageState createState() => _MyDrawerPageState();
 }
 
-class _MyDrawerState extends State<MyDrawer> {
+class _MyDrawerPageState extends State<MyDrawerPage> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>(); // Initialize formKey
+
 
   @override
   void initState() {
     super.initState();
   }
 
-  void deleteUserDataFromFirestore() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      // Delete user data from Firestore
-      final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-      await userDocRef.delete();
 
-      // Sign out the user
-      await FirebaseAuth.instance.signOut();
-
-      // Navigate to the authentication screen
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MergedLoginScreen()));
-    }
-  }
-
-  void updateName(String newName) {
-    setState(() {
-      sharedPreferences!.setString("name", newName);
-    });
-  }
-
-  void updateAddress(String newAddress) {
-    setState(() {
-      sharedPreferences!.setString("address", newAddress);
-    });
-  }
-
-  void updatePhone(String newPhone) {
-    setState(() {
-      sharedPreferences!.setString("phone", newPhone);
-    });
-  }
 
   Future<void> signOutAndClearPrefs(BuildContext context) async {
-    // Sign out the user
     await FirebaseAuth.instance.signOut();
-
-    // Clear SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-
-    // Navigate to the AuthScreen
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => MergedLoginScreen()),
@@ -78,23 +44,243 @@ class _MyDrawerState extends State<MyDrawer> {
     return regex.hasMatch(value);
   }
 
+  void updateBalance(String newBalance) {
+    setState(() {
+      sharedPreferences!.setString("money", newBalance);
+    });
+  }
+
+  void updateName(String newName) {
+    setState(() {
+      sharedPreferences!.setString("name", newName);
+    });
+  }
+  void updateAddress(String newAddress) {
+    setState(() {
+      sharedPreferences!.setString("address", newAddress);
+    });
+  }
+  void updatePhone(String newPhone) {
+    setState(() {
+      sharedPreferences!.setString("phone", newPhone);
+    });
+  }
+
+
+  String selectedOption = '';
+  void launchURLWithParams() async {
+    final String baseUrl = 'polskoydm.pythonanywhere.com'; // Remove 'https://' from the base URL
+    final String total = selectedOption;
+    final String email = sharedPreferences!.getString("email") ?? "No Email";
+
+    final urlWithParams = Uri.https(baseUrl, '/addmoney', {
+      'total': total,
+      'email': email,
+    });
+
+    final urlString = urlWithParams.toString();
+
+    print('URL: $urlString');
+
+    if (await canLaunch(urlString)) {
+      print('Launching URL...');
+      final result = await launch(urlString);
+      if (result) {
+        print('URL launched successfully');
+      } else {
+        print('Failed to launch the URL');
+      }
+    } else {
+      print('Could not launch the URL: $urlString');
+    }
+  }
+
+  Future<void> fetchBalance(String email) async {
+    final apiUrl = 'https://polskoydm.pythonanywhere.com/balance'; // Replace with your API endpoint
+    final url = Uri.parse('$apiUrl?email=$email');
+
+    print('Requesting API URL: $url'); // Print the URL before making the request
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      // Successful API response
+      final responseData = json.decode(response.body); // Parse the JSON response
+
+      if (responseData.containsKey("balance")) {
+        final updatedBalance = responseData["balance"];
+        print('API Response: $updatedBalance'); // Print the response
+
+        updateBalance(updatedBalance.toString()); // Update the balance in shared preferences as a string
+      }
+    } else {
+      // Handle API error
+      print('Failed to fetch balance: ${response.statusCode}');
+    }
+  }
+
+
+
+
+
+  void _showAddMoneyDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(builder: (context, setState) {
+          return AlertDialog(
+            title: Text('Add Money'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 10),
+                Column(
+                  children: [
+                    RadioListTile<String>(
+                      title: Text('\$100.00'),
+                      value: '100',
+                      groupValue: selectedOption,
+                      onChanged: (String? value) {
+                        setState(() {
+                          selectedOption = value!;
+                        });
+                      },
+                    ),
+                    RadioListTile<String>(
+                      title: Text('\$200.00'),
+                      value: '200',
+                      groupValue: selectedOption,
+                      onChanged: (String? value) {
+                        setState(() {
+                          selectedOption = value!;
+                        });
+                      },
+                    ),
+                    RadioListTile<String>(
+                      title: Text('\$300.00'),
+                      value: '300',
+                      groupValue: selectedOption,
+                      onChanged: (String? value) {
+                        setState(() {
+                          selectedOption = value!;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                if (selectedOption.isNotEmpty) // Show the "Checkout" button if an option is selected
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          launchURLWithParams(); // Send data to your API
+                          Navigator.of(context).pop(); // Close the dialog
+                        },
+                        child: Text('Checkout'),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          );
+        });
+      },
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    return Drawer(
-      child: ListView(
+
+
+    return Scaffold(
+      body: ListView(
         children: [
+          // Credit Card View
           Container(
-            padding: const EdgeInsets.only(top: 25, bottom: 10),
+            margin: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blue, // Customize the background color
+              borderRadius: BorderRadius.circular(15), // Adjust the radius value as needed
+            ),
             child: Column(
               children: [
-                const SizedBox(height: 10,),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), // Add left and right padding
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Billa Balance',
+                        style: TextStyle(color: Colors.white, fontSize: 18),
+                      ),
+                      Text(
+                        '\$${sharedPreferences!.getString("money") ?? "0"}', // Display the balance amount with a dollar sign
+                        style: TextStyle(color: Colors.white, fontSize: 18),
+                      )
+
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 110),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.refresh,
+                          size: 34, // Adjust the size as needed
+                          color: Colors.white, // Set the icon color to match the background color
+                        ),
+                        onPressed: () async {
+                          final email = sharedPreferences!.getString("email") ?? "No Email";
+                          await fetchBalance(email);
+                        },
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Add your "Top-up" button functionality here
+                          _showAddMoneyDialog();
+                        },
+                        style: ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all(Colors.green),
+                          padding: MaterialStateProperty.all(EdgeInsets.all(0)), // Remove default button padding
+                        ),
+                        child: Text(
+                          'Top-up',
+                          style: TextStyle(color: Colors.white, fontSize: 16), // Adjust text style as needed
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+
               ],
             ),
           ),
-          const SizedBox(height: 12,),
+
+
+          Container(
+            padding: const EdgeInsets.only(top: 2, bottom: 10),
+            child: Column(
+              children: const [
+                SizedBox(height: 10),
+              ],
+            ),
+          ),
 
           ListTile(
-            leading: const Icon(Icons.person, color: Colors.black,),
+            leading: const Icon(Icons.email, color: Colors.white),
+            title: Text(
+              FirebaseAuth.instance.currentUser?.email ?? "No Email",
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.person, color: Colors.white,),
             title: GestureDetector(
               onTap: () {
                 showDialog(
@@ -141,31 +327,21 @@ class _MyDrawerState extends State<MyDrawer> {
                 children: [
                   Text(
                     sharedPreferences!.getString("name") ?? "No Name",
-                    style: TextStyle(color: Colors.black),
+                    style: TextStyle(color: Colors.white),
                   ),
                 ],
               ),
             ),
           ),
-
-          // Display user's email
           ListTile(
-            leading: const Icon(Icons.email, color: Colors.black,),
-            title: Text(
-              FirebaseAuth.instance.currentUser?.email ?? "No Email",
-              style: TextStyle(color: Colors.black),
-            ),
-          ),
-
-          ListTile(
-            leading: const Icon(Icons.location_on, color: Colors.black,),
+            leading: const Icon(Icons.home, color: Colors.white,),
             title: GestureDetector(
               onTap: () {
                 showDialog(
                   context: context,
                   builder: (context) {
                     return AlertDialog(
-                      title: const Text("Edit Address"),
+                      title: const Text("Edit Addrss"),
                       content: Form(
                         key: formKey,
                         child: TextFormField(
@@ -205,20 +381,18 @@ class _MyDrawerState extends State<MyDrawer> {
                 children: [
                   Text(
                     sharedPreferences!.getString("address") ?? "No Address",
-                    style: TextStyle(color: Colors.black),
+                    style: TextStyle(color: Colors.white),
                   ),
-                  if (sharedPreferences!.getString("address") == null)
-                    const Text(
-                      "Add Address",
-                      style: TextStyle(color: Colors.blue),
-                    ),
                 ],
               ),
             ),
           ),
 
+
+
+
           ListTile(
-            leading: const Icon(Icons.phone, color: Colors.black,),
+            leading: const Icon(Icons.phone, color: Colors.white,),
             title: GestureDetector(
               onTap: () {
                 showDialog(
@@ -265,47 +439,35 @@ class _MyDrawerState extends State<MyDrawer> {
                 children: [
                   Text(
                     sharedPreferences!.getString("phone") ?? "No Phone Number",
-                    style: TextStyle(color: Colors.black),
+                    style: TextStyle(color: Colors.white),
                   ),
                 ],
               ),
             ),
           ),
-
-          // Other list items
-
           ListTile(
-            leading: const Icon(Icons.delete, color: Colors.red),
+            leading: const Icon(Icons.history, color: Colors.white),
             title: const Text(
-              "Delete Account",
-              style: TextStyle(color: Colors.red),
+              "Order History",
+              style: TextStyle(color: Colors.white),
             ),
             onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) {
-                  return AlertDialog(
-                    title: const Text("Delete Account"),
-                    content: const Text("Are you sure you want to delete your account? This action cannot be undone."),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          deleteUserDataFromFirestore();
-                        },
-                        child: const Text("Delete"),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        child: const Text("Cancel"),
-                      ),
-                    ],
-                  );
-                },
-              );
+              Navigator.push(
+                  context, MaterialPageRoute(builder: (c) => ChatScreen()));
             },
           ),
+
+          ListTile(
+            leading: const Icon(Icons.exit_to_app, color: Colors.white),
+            title: const Text(
+              "Sign Out",
+              style: TextStyle(color: Colors.white),
+            ),
+            onTap: () {
+              signOutAndClearPrefs(context);
+            },
+          ),
+
 
           const Divider(
             height: 10,
@@ -314,35 +476,16 @@ class _MyDrawerState extends State<MyDrawer> {
           ),
 
           ListTile(
-            leading: const Icon(Icons.home, color: Colors.black,),
+            leading: const Icon(Icons.delete, color: Colors.red),
             title: const Text(
-              "Home",
-              style: TextStyle(color: Colors.black),
-            ),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (c) => const HomeScreen()));
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.language, color: Colors.black,),
-            title: const Text(
-              "Language: English (Canada)",
-              style: TextStyle(color: Colors.black),
-            ),
-          ),
-
-          ListTile(
-            leading: const Icon(Icons.smartphone, color: Colors.black),
-            title: const Text(
-              "Contact Us",
-              style: TextStyle(color: Colors.black),
+              "Delete Profile",
+              style: TextStyle(color: Colors.white),
             ),
             onTap: () async {
-              const url = 'https://www.wheels.works'; // Replace with the URL you want to open
-              if (await canLaunch(url)) {
+              const url = 'https://theholylabs.com/'; // Replace with the URL you want to open
+              if (await launch(url)) {
                 await launch(url);
               } else {
-                // Handle the case where the URL can't be launched, e.g., show an error message.
                 showDialog(
                   context: context,
                   builder: (context) {
@@ -363,18 +506,16 @@ class _MyDrawerState extends State<MyDrawer> {
               }
             },
           ),
-
-
           ListTile(
-            leading: const Icon(Icons.exit_to_app, color: Colors.black),
+            leading: const Icon(Icons.language, color: Colors.white),
             title: const Text(
-              "Sign Out",
-              style: TextStyle(color: Colors.black),
+              "Language: English",
+              style: TextStyle(color: Colors.white),
             ),
-            onTap: () {
-              signOutAndClearPrefs(context);
-            },
-          )
+          ),
+
+
+
         ],
       ),
     );

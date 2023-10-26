@@ -5,12 +5,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:order_app/mainScreens/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:the_apple_sign_in/the_apple_sign_in.dart';
 import 'package:http/http.dart' as http;
-
 import '../global/global.dart';
-import '../mainScreens/home_screen.dart';
 import '../widgets/error_dialog.dart';
 
 final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -387,7 +386,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
 
           Navigator.pop(context);
           Navigator.push(
-              context, MaterialPageRoute(builder: (c) => const HomeScreen()));
+              context, MaterialPageRoute(builder: (c) => MyHomePage()));
         } else {
           _auth.signOut();
           Navigator.pop(context);
@@ -444,6 +443,37 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                   ),
                 ),
               ),
+              if (Platform.isIOS) // Check if the platform is iOS
+                OutlinedButton(
+                  onPressed: () {
+                    appleSign();
+                  },
+                  style: OutlinedButton.styleFrom(
+                    primary: Colors.black, // Text color
+                    side: BorderSide(color: Colors.black), // Border color
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Continue with Apple",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w400,
+                          fontStyle: FontStyle.normal,
+                          fontSize: 14,
+                          color: Colors.black, // Text color
+                        ),
+                      ),
+                      SizedBox(width: 8), // Add some spacing between the text and the icon
+                      Image.asset(
+                        'images/apple.png', // Add the path to your Apple logo image
+                        width: 50,
+                        height: 50,
+                      ),
+                    ],
+                  ),
+                ),
+              if (Platform.isAndroid) // Check if the platform is iOS
               Padding(
                 padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
                 child: Column(
@@ -479,36 +509,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                         ],
                       ),
                     ),
-                    if (Platform.isIOS) // Check if the platform is iOS
-                      OutlinedButton(
-                        onPressed: () {
-                          appleSign();
-                        },
-                        style: OutlinedButton.styleFrom(
-                          primary: Colors.black, // Text color
-                          side: BorderSide(color: Colors.black), // Border color
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Continue with Apple",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w400,
-                                fontStyle: FontStyle.normal,
-                                fontSize: 14,
-                                color: Colors.black, // Text color
-                              ),
-                            ),
-                            SizedBox(width: 8), // Add some spacing between the text and the icon
-                            Image.asset(
-                              'images/apple.png', // Add the path to your Apple logo image
-                              width: 50,
-                              height: 50,
-                            ),
-                          ],
-                        ),
-                      ),
+
                   ],
                 ),
               ),

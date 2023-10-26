@@ -98,49 +98,26 @@ class _ChatScreenState extends State<ChatScreen> {
       print('API Request Error: $error');
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-        title: Text(
-          'My Chats',
-          style: TextStyle(
-            fontSize: 25.0,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: Text('My Chats'), // Change this to your desired title
       ),
-      body: chatRooms.isEmpty
-          ? Center(
-        child: Card(
-          elevation: 2.0,
-          margin: EdgeInsets.all(26.0),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              "You don't have open conversations, Login or Sign up to start messaging",
-              style: TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-      )
-          : Column(
+      body: Column(
         children: [
+
           Expanded(
             child: Container(
               height: MediaQuery.of(context).size.height,
-              child: ListView.builder(
+              child: chatRooms.isEmpty
+                  ? Center(
+                child: Text(
+                  'No chat available',
+                  style: TextStyle(fontSize: 20.0),
+                ),
+              )
+                  : ListView.builder(
                 itemCount: chatRooms.length,
                 itemBuilder: (context, index) {
                   Map<String, dynamic> chatRoom = chatRooms[index];
@@ -150,8 +127,8 @@ class _ChatScreenState extends State<ChatScreen> {
                       leading: CircleAvatar(
                         backgroundImage: NetworkImage('https://i.pinimg.com/564x/ba/fd/69/bafd6939587fc13452f170cae8dc3ad8.jpg'),
                       ),
-                      title: Text(chatRoom['storeName']),
-                      subtitle: Text(chatRoom['lastMessage'] + " " + chatRoom['status']),
+                      title: Text(chatRoom['userName']),
+                      subtitle: Text(chatRoom['lastMessage'] + " " + chatRoom['storeName']),
                       trailing: GestureDetector(
                         onTap: () {
                           switch (chatRoom['status'].toLowerCase()) {

@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:maps_launcher/maps_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'home_screen.dart';
+import 'discover_screen.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final Map<String, dynamic> chatRoom;
@@ -155,18 +155,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 child: Row(
                   children: [
                     Icon(
-                      Icons.card_giftcard, // Replace with the desired icon (e.g., Icons.shopping_cart)
+                      Icons.archive, // Replace with the desired icon (e.g., Icons.shopping_cart)
                       color: Colors.white, // Set the icon color
                       size: 18.0, // Set the icon size
                     ),
                     SizedBox(width: 8.0), // Add spacing between the icon and text
-                    Text(
-                      "ITEMS",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18.0,
-                      ),
-                    ),
+
                   ],
                 )
 
