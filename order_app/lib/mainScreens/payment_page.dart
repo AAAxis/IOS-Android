@@ -26,8 +26,8 @@ class PaymentPage extends StatefulWidget {
 }
 
 class _PaymentPageState extends State<PaymentPage> {
-  String selectedPaymentMethod = 'Billa Pay'; // Default to Billa Pay
-  List<String> paymentMethods = ['Billa Pay', 'Credit Card'];
+  String selectedPaymentMethod = 'Credit Card'; // Default to Billa Pay
+  List<String> paymentMethods = ['Cash', 'Credit Card'];
   bool hasAddress = false;
   TextEditingController addressController = TextEditingController();
   TextEditingController nameController = TextEditingController();
@@ -62,6 +62,36 @@ class _PaymentPageState extends State<PaymentPage> {
       return false;
     }
   }
+
+  Future<bool> _sendCashPayRequest() async {
+    try {
+      final url = 'https://polskoydm.pythonanywhere.com/cash/${widget.orderId}';
+
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        // No request data in the body
+      );
+
+      print('Request URL: $url'); // Print the URL
+      print('Response: ${response.body}'); // Print the response body
+
+      if (response.statusCode == 200) {
+        // Request was successful
+        _showSuccessDialog();
+        return true;
+      } else {
+        // Request encountered an error
+        _showErrorDialog();
+        return false;
+      }
+    } catch (e) {
+      // Handle exceptions
+      print('Error: $e'); // Print the exception
+      return false;
+    }
+  }
+
 
   void _showSuccessDialog() {
     showDialog(
@@ -366,23 +396,13 @@ class _PaymentPageState extends State<PaymentPage> {
             child: ElevatedButton(
               onPressed: hasAddress
                   ? () async {
-                if (selectedPaymentMethod == 'Billa Pay') {
+                if (selectedPaymentMethod == 'Credit Card') {
                   await _sendBillaPayRequest();
 
-                } else if (selectedPaymentMethod == 'Credit Card') {
-                  final url =
-                      'https://polskoydm.pythonanywhere.com/create-checkout-session/${widget.orderId}';
-                  if (await canLaunch(url)) {
-                    await launch(url);
-                  } else {
-                    print('Could not launch $url');
-                  }
+                } else if (selectedPaymentMethod == 'Cash') {
+                  await _sendCashPayRequest();
                   // Navigate to the home page
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                      builder: (context) => MyHomePage(), // Replace with the actual widget for your home page
-                    ),
-                  );
+
 
                 }
               }
@@ -395,8 +415,8 @@ class _PaymentPageState extends State<PaymentPage> {
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 15),
                 child: Text(
-                  selectedPaymentMethod == 'Billa Pay'
-                      ? 'Proceed to Billa Pay'
+                  selectedPaymentMethod == 'Cash'
+                      ? 'Proceed to Cash Payment'
                       : 'Proceed to Credit Card',
                   textAlign: TextAlign.center,
                   style: TextStyle(
