@@ -16,7 +16,6 @@ class ErrorDialog extends StatelessWidget
             child: Text("OK"),
           ),
           style: ElevatedButton.styleFrom(
-            primary: Colors.red,
           ),
           onPressed: ()
           {

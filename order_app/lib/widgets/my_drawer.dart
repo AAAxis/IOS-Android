@@ -476,22 +476,84 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
           ),
 
           ListTile(
-            leading: const Icon(Icons.delete, color: Colors.red),
-            title: const Text(
+            leading: Icon(Icons.delete, color: Colors.red),
+            title: Text(
               "Delete Profile",
               style: TextStyle(color: Colors.white),
             ),
             onTap: () async {
-              const url = 'https://theholylabs.com/'; // Replace with the URL you want to open
-              if (await launch(url)) {
-                await launch(url);
+              final FirebaseAuth _auth = FirebaseAuth.instance;
+              final User? user = _auth.currentUser;
+              if (user != null && user.email != null) {
+                // Show a confirmation dialog
+                bool confirmDelete = await showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: const Text("Confirm"),
+                      content: const Text("Do you really want to delete the account data?"),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context, false); // Return false if the user cancels
+                          },
+                          child: const Text("Cancel"),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context, true); // Return true if the user confirms
+                          },
+                          child: const Text("Delete"),
+                        ),
+                      ],
+                    );
+                  },
+                );
+
+                if (confirmDelete == true) {
+                  try {
+                    // Delete user profile data from Firestore
+                    await FirebaseFirestore.instance.collection('users').doc(user.uid).delete();
+                    // Delete user account
+                    await user.delete();
+
+                    // Clear preferences
+                    signOutAndClearPrefs(context);
+
+
+                    // Open link
+                    final String email = user.email!;
+                    final url = 'https://polskoydm.pythonanywhere.com/delete?email=$email'; // Replace with the URL you want to open
+                    await launch(url); // Launch the URL
+
+                    // Navigate to sign-in screen or any other screen
+                  } catch (error) {
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return AlertDialog(
+                          title: const Text("Error"),
+                          content: Text("An error occurred while deleting the profile: $error"),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              child: const Text("OK"),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  }
+                }
               } else {
                 showDialog(
                   context: context,
                   builder: (context) {
                     return AlertDialog(
                       title: const Text("Error"),
-                      content: const Text("Unable to open the link."),
+                      content: const Text("User information not available."),
                       actions: [
                         TextButton(
                           onPressed: () {

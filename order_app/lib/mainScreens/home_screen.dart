@@ -1,6 +1,7 @@
 import 'package:order_app/authentication/auth_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:order_app/mainScreens/discover_screen.dart';
+import 'package:order_app/mainScreens/map_screen.dart';
 import 'package:order_app/widgets/my_drawer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'chat_screen.dart';
@@ -16,6 +17,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   final List<Widget> _screens = [
     HomeScreen(),
+    MapScreen(), // Add MapScreen here
     MyDrawerPage(),
   ];
 
@@ -54,7 +56,7 @@ class _MyHomePageState extends State<MyHomePage> {
           currentIndex: _currentIndex,
           selectedItemColor: Colors.black, // Set icon color to black
           onTap: (index) {
-            if (index == 1 && !_isLoggedIn) {
+            if (index == 2 && !_isLoggedIn) {
               // If "Login" button is tapped and not logged in, navigate to AuthScreen
               Navigator.of(context).push(MaterialPageRoute(
                 builder: (context) => MergedLoginScreen(),
@@ -68,15 +70,21 @@ class _MyHomePageState extends State<MyHomePage> {
           type: BottomNavigationBarType.fixed, // Fixed type to center icons
           items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.home, size: 35), // Increase icon size
-              label: 'Home', // Label text
+              icon: Icon(Icons.food_bank_outlined, size: 35), // Increase icon size
+              label: 'Eats', // Label text
             ),
+
+            BottomNavigationBarItem(
+              icon: Icon(Icons.directions_car_rounded, size: 35), // Car icon
+              label: 'Ride', // Label text
+            ),
+
 
             BottomNavigationBarItem(
               icon: _isLoggedIn
                   ? Icon(Icons.person, size: 35) // Display user icon if logged in
                   : Icon(Icons.login, size: 35), // Display login icon if not logged in
-              label: _isLoggedIn ? 'Profile' : 'Login', // Label text
+              label: _isLoggedIn ? 'Accaunt' : 'Login', // Label text
             ),
           ],
         ),

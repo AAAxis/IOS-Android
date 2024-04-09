@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:order_app/mainScreens/discover_screen.dart';
 import 'package:order_app/mainScreens/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:the_apple_sign_in/the_apple_sign_in.dart';
@@ -62,6 +63,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+
         setState(() {
           _isEmailSent = true;
           verificationCode = data['verification_code'];
@@ -444,75 +446,77 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                 ),
               ),
               if (Platform.isIOS) // Check if the platform is iOS
-                OutlinedButton(
-                  onPressed: () {
-                    appleSign();
-                  },
-                  style: OutlinedButton.styleFrom(
-                    primary: Colors.black, // Text color
-                    side: BorderSide(color: Colors.black), // Border color
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, 0), // Adjust padding here
+                  child: OutlinedButton(
+                    onPressed: () {
+                      appleSign();
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.black),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Continue with Apple",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w400,
+                            fontStyle: FontStyle.normal,
+                            fontSize: 14,
+                            color: Colors.black,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Image.asset(
+                          'images/apple.png',
+                          width: 50,
+                          height: 50,
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Row(
+                ),
+
+              if (Platform.isAndroid) // Check if the platform is iOS
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        "Continue with Apple",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w400,
-                          fontStyle: FontStyle.normal,
-                          fontSize: 14,
-                          color: Colors.black, // Text color
+                      OutlinedButton(
+                        onPressed: () {
+                          _signInWithGoogle();
+                        },
+                        style: OutlinedButton.styleFrom( // Text color
+                          side: BorderSide(color: Colors.black), // Border color
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Continue with Google",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w400,
+                                fontStyle: FontStyle.normal,
+                                fontSize: 14,
+                                color: Colors.black, // Text color
+                              ),
+                            ),
+                            SizedBox(width: 8), // Add some spacing between the text and the icon
+                            Image.asset(
+                              'images/google.png', // Add the path to your Google logo image
+                              width: 50,
+                              height: 50,
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(width: 8), // Add some spacing between the text and the icon
-                      Image.asset(
-                        'images/apple.png', // Add the path to your Apple logo image
-                        width: 50,
-                        height: 50,
-                      ),
+
                     ],
                   ),
                 ),
-              if (Platform.isAndroid) // Check if the platform is iOS
-              Padding(
-                padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    OutlinedButton(
-                      onPressed: () {
-                        _signInWithGoogle();
-                      },
-                      style: OutlinedButton.styleFrom(
-                        primary: Colors.black, // Text color
-                        side: BorderSide(color: Colors.black), // Border color
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Continue with Google",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w400,
-                              fontStyle: FontStyle.normal,
-                              fontSize: 14,
-                              color: Colors.black, // Text color
-                            ),
-                          ),
-                          SizedBox(width: 8), // Add some spacing between the text and the icon
-                          Image.asset(
-                            'images/google.png', // Add the path to your Google logo image
-                            width: 50,
-                            height: 50,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                  ],
-                ),
-              ),
               Padding(
                 padding: EdgeInsets.fromLTRB(0, 8, 0, 0),
                 child: Text(
@@ -651,9 +655,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                       : MaterialButton(
                     onPressed: () {
                       // Change _isEmailSent to true when the "Send Code" button is pressed.
-                      setState(() {
-                        _isEmailSent = true;
-                      });
+
                       sendEmail();
                     },
                     color: Color(0xffffffff),

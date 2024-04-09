@@ -1,12 +1,10 @@
-import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:taxi_app/authentication/auth_screen.dart';
-import 'package:taxi_app/chat_screen.dart';
 import 'package:taxi_app/global/global.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:url_launcher/url_launcher.dart';
 
 class MyDrawerPage extends StatefulWidget {
@@ -16,9 +14,8 @@ class MyDrawerPage extends StatefulWidget {
 
 class _MyDrawerPageState extends State<MyDrawerPage> {
   final TextEditingController nameController = TextEditingController();
-  final TextEditingController addressController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>(); // Initialize formKey
 
   @override
   void initState() {
@@ -41,21 +38,9 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
     return regex.hasMatch(value);
   }
 
-  void updateBalance(String newBalance) {
-    setState(() {
-      sharedPreferences!.setString("money", newBalance);
-    });
-  }
-
   void updateName(String newName) {
     setState(() {
       sharedPreferences!.setString("name", newName);
-    });
-  }
-
-  void updateAddress(String newAddress) {
-    setState(() {
-      sharedPreferences!.setString("address", newAddress);
     });
   }
 
@@ -65,199 +50,27 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
     });
   }
 
-  String selectedOption = '';
-  void launchURLWithParams() async {
-    final String baseUrl = 'polskoydm.pythonanywhere.com';
-    final String total = selectedOption;
-    final String email = sharedPreferences!.getString("email") ?? "No Email";
-
-    final urlWithParams = Uri.https(baseUrl, '/addmoney', {
-      'total': total,
-      'email': email,
-    });
-
-    final urlString = urlWithParams.toString();
-
-    print('URL: $urlString');
-
-    if (await canLaunch(urlString)) {
-      print('Launching URL...');
-      final result = await launch(urlString);
-      if (result) {
-        print('URL launched successfully');
-      } else {
-        print('Failed to launch the URL');
-      }
-    } else {
-      print('Could not launch the URL: $urlString');
-    }
-  }
-
-  Future<void> fetchBalance(String email) async {
-    final apiUrl = 'https://polskoydm.pythonanywhere.com/balance';
-    final url = Uri.parse('$apiUrl?email=$email');
-
-    print('Requesting API URL: $url');
-
-    final response = await http.get(url);
-
-    if (response.statusCode == 200) {
-      final responseData = json.decode(response.body);
-
-      if (responseData.containsKey("balance")) {
-        final updatedBalance = responseData["balance"];
-        print('API Response: $updatedBalance');
-        updateBalance(updatedBalance.toString());
-      }
-    } else {
-      print('Failed to fetch balance: ${response.statusCode}');
-    }
-  }
-
-  void _showAddMoneyDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(builder: (context, setState) {
-          return AlertDialog(
-            title: Text('Add Money'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 10),
-                Column(
-                  children: [
-                    RadioListTile<String>(
-                      title: Text('\$100.00'),
-                      value: '100',
-                      groupValue: selectedOption,
-                      onChanged: (String? value) {
-                        setState(() {
-                          selectedOption = value!;
-                        });
-                      },
-                    ),
-                    RadioListTile<String>(
-                      title: Text('\$200.00'),
-                      value: '200',
-                      groupValue: selectedOption,
-                      onChanged: (String? value) {
-                        setState(() {
-                          selectedOption = value!;
-                        });
-                      },
-                    ),
-                    RadioListTile<String>(
-                      title: Text('\$300.00'),
-                      value: '300',
-                      groupValue: selectedOption,
-                      onChanged: (String? value) {
-                        setState(() {
-                          selectedOption = value!;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-                if (selectedOption.isNotEmpty)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          launchURLWithParams();
-                          Navigator.of(context).pop();
-                        },
-                        child: Text('Checkout'),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          );
-        });
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Settings'),
-        backgroundColor: Colors.white,
+        title: Text('My Profile'),
       ),
       body: ListView(
         children: [
           Container(
-            margin: EdgeInsets.all(16),
+            width: 180, // Adjust the width of the container to control the size of the image
+            height: 180, // Adjust the height of the container to control the size of the image
             decoration: BoxDecoration(
-              color: Colors.blue,
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Billa Balance',
-                        style: TextStyle(color: Colors.white, fontSize: 18),
-                      ),
-                      Text(
-                        '\$${sharedPreferences!.getString("money") ?? "0"}',
-                        style: TextStyle(color: Colors.white, fontSize: 18),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 110),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.refresh,
-                          size: 34,
-                          color: Colors.white,
-                        ),
-                        onPressed: () async {
-                          final email = sharedPreferences!.getString("email") ?? "No Email";
-                          await fetchBalance(email);
-                        },
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          _showAddMoneyDialog();
-                        },
-                        style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all(Colors.green),
-                          padding: MaterialStateProperty.all(EdgeInsets.all(0)),
-                        ),
-                        child: Text(
-                          'Top-up',
-                          style: TextStyle(color: Colors.white, fontSize: 16),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              ],
+              shape: BoxShape.circle,
+              image: DecorationImage(
+                fit: BoxFit.cover, // Cover the entire circle with the image
+                image: NetworkImage('https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg'), // Replace with your placeholder photo URL
+              ),
             ),
           ),
-          Container(
-            padding: const EdgeInsets.only(top: 2, bottom: 10),
-            child: Column(
-              children: const [
-                SizedBox(height: 10),
-              ],
-            ),
-          ),
+          SizedBox(height: 20), // Adding space between the two containers
           ListTile(
             leading: const Icon(Icons.email, color: Colors.black),
             title: Text(
@@ -278,7 +91,8 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
                         key: formKey,
                         child: TextFormField(
                           controller: nameController,
-                          decoration: const InputDecoration(labelText: "Name"),
+                          decoration:
+                          const InputDecoration(labelText: "Name"),
                           validator: (value) {
                             if (value?.isEmpty ?? true) {
                               return 'Please enter your name';
@@ -292,9 +106,12 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
                           onPressed: () async {
                             if (formKey.currentState?.validate() ?? false) {
                               final newName = nameController.text;
-                              final user = FirebaseAuth.instance.currentUser;
+                              final user =
+                                  FirebaseAuth.instance.currentUser;
                               if (user != null) {
-                                final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+                                final userDocRef = FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(user.uid);
                                 await userDocRef.update({'name': newName});
                                 updateName(newName);
                               }
@@ -332,7 +149,8 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
                         key: formKey,
                         child: TextFormField(
                           controller: phoneController,
-                          decoration: const InputDecoration(labelText: "Phone Number"),
+                          decoration:
+                          const InputDecoration(labelText: "Phone Number"),
                           validator: (value) {
                             if (!isPhoneNumberValid(value)) {
                               return 'Please enter a valid phone number';
@@ -346,9 +164,12 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
                           onPressed: () async {
                             if (formKey.currentState?.validate() ?? false) {
                               final newPhone = phoneController.text;
-                              final user = FirebaseAuth.instance.currentUser;
+                              final user =
+                                  FirebaseAuth.instance.currentUser;
                               if (user != null) {
-                                final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+                                final userDocRef = FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(user.uid);
                                 await userDocRef.update({'phone': newPhone});
                                 updatePhone(newPhone);
                               }
@@ -366,32 +187,13 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    sharedPreferences!.getString("phone") ?? "No Phone Number",
+                    sharedPreferences!.getString("phone") ??
+                        "No Phone Number",
                     style: TextStyle(color: Colors.black),
                   ),
                 ],
               ),
             ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.history, color: Colors.black),
-            title: const Text(
-              "Ride History",
-              style: TextStyle(color: Colors.black),
-            ),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (c) => ChatScreen()));
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.exit_to_app, color: Colors.black),
-            title: const Text(
-              "Sign Out",
-              style: TextStyle(color: Colors.black),
-            ),
-            onTap: () {
-              signOutAndClearPrefs(context);
-            },
           ),
           const Divider(
             height: 10,
@@ -399,29 +201,84 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
             thickness: 2,
           ),
           ListTile(
-            leading: const Icon(Icons.language, color: Colors.black),
-            title: const Text(
-              "Language: English",
-              style: TextStyle(color: Colors.black),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.delete, color: Colors.red),
-            title: const Text(
+            leading: Icon(Icons.delete, color: Colors.red),
+            title: Text(
               "Delete Profile",
               style: TextStyle(color: Colors.black),
             ),
             onTap: () async {
-              const url = 'https://theholylabs.com/';
-              if (await launch(url)) {
-                await launch(url);
+              final FirebaseAuth _auth = FirebaseAuth.instance;
+              final User? user = _auth.currentUser;
+              if (user != null && user.email != null) {
+                // Show a confirmation dialog
+                bool confirmDelete = await showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: const Text("Confirm"),
+                      content: const Text("Do you really want to delete the account data?"),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context, false); // Return false if the user cancels
+                          },
+                          child: const Text("Cancel"),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context, true); // Return true if the user confirms
+                          },
+                          child: const Text("Delete"),
+                        ),
+                      ],
+                    );
+                  },
+                );
+
+                if (confirmDelete == true) {
+                  try {
+                    // Delete user profile data from Firestore
+                    await FirebaseFirestore.instance.collection('users').doc(user.uid).delete();
+                    // Delete user account
+                    await user.delete();
+
+                    // Clear preferences
+                    signOutAndClearPrefs(context);
+
+
+                    // Open link
+                    final String email = user.email!;
+                    final url = 'https://polskoydm.pythonanywhere.com/delete?email=$email'; // Replace with the URL you want to open
+                    await launch(url); // Launch the URL
+
+                    // Navigate to sign-in screen or any other screen
+                  } catch (error) {
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return AlertDialog(
+                          title: const Text("Error"),
+                          content: Text("An error occurred while deleting the profile: $error"),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              child: const Text("OK"),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  }
+                }
               } else {
                 showDialog(
                   context: context,
                   builder: (context) {
                     return AlertDialog(
                       title: const Text("Error"),
-                      content: const Text("Unable to open the link."),
+                      content: const Text("User information not available."),
                       actions: [
                         TextButton(
                           onPressed: () {
@@ -441,5 +298,3 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
     );
   }
 }
-
-

@@ -1,17 +1,20 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/map_page.dart';
 import 'package:driver_app/widgets/home_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:the_apple_sign_in/the_apple_sign_in.dart';
 import 'package:http/http.dart' as http;
-
 import '../global/global.dart';
 import '../widgets/error_dialog.dart';
 
 final FirebaseAuth _auth = FirebaseAuth.instance;
+final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
+
 class MergedLoginScreen extends StatefulWidget {
   const MergedLoginScreen({Key? key}) : super(key: key);
 
@@ -25,7 +28,6 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
 
   bool _isEmailSent = false;
   String? verificationCode;
-
 
 
   Future<void> sendEmail() async {
@@ -60,6 +62,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+
         setState(() {
           _isEmailSent = true;
           verificationCode = data['verification_code'];
@@ -110,74 +113,6 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
   }
 
 
-  Future<void> loginAsGuest() async {
-    try {
-      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: "support@theholylabs.com",
-        password: "passwordless",
-      );
-
-
-        // If the user doesn't exist in Firestore, create a new document
-        await FirebaseFirestore.instance.collection("drivers").doc(userCredential.user?.uid).set({
-          "uid": userCredential.user?.uid,
-          "name": "Support",
-          "phone": "+16474724580",
-          "email": "support@theholylabs.com",
-          "userAvatarUrl": "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png",
-          "trackingPermission": false, // Adjust the default value as needed
-        });
-
-        final SharedPreferences prefs = await SharedPreferences.getInstance();
-        prefs.setString("uid", userCredential.user!.uid);
-        prefs.setString("email", "support@theholylabs.com");
-        prefs.setString("name", "Support");
-        prefs.setString("phone", "+16474724580");
-        prefs.setString("userAvatarUrl", "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png");
-        prefs.setBool("tracking", false);
-
-        Navigator.pop(context);
-        Navigator.push(
-            context, MaterialPageRoute(builder: (c) => MyOrderPage()));
-
-    } catch (e) {
-      if (e is FirebaseAuthException) {
-        if (e.code == 'email-already-in-use') {
-          try {
-            UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-              email: "support@theholylabs.com",
-              password: "passwordless",
-            );
-
-
-          // User already exists in Firestore, proceed as needed
-          final SharedPreferences prefs = await SharedPreferences.getInstance();
-          prefs.setString("uid", userCredential.user!.uid);
-          prefs.setString("email", "support@theholylabs.com");
-          prefs.setString("name", "Support");
-          prefs.setString("phone", "+16474724580");
-          prefs.setString("userAvatarUrl", "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png");
-          prefs.setBool("tracking", false);
-
-          Navigator.pop(context);
-          Navigator.push(
-              context, MaterialPageRoute(builder: (c) => MyOrderPage()));
-
-          } catch (e) {
-            // Handle the sign-in error here
-            print('Failed to sign in the user: $e');
-          }
-        } else {
-          // Handle other Firebase Authentication errors for registration
-          print('Failed to create a user account: $e');
-        }
-      }
-    }
-  }
-
-
-
-
   void verify() async {
     final enteredCode = codeController.text;
     bool trackingPermissionStatus = sharedPreferences!.getBool("tracking") ?? false;
@@ -201,16 +136,18 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
 
           // Check if the user exists in Firestore
           DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-              .collection("drivers")
+              .collection("users")
               .doc(uid)
               .get();
 
           if (!userSnapshot.exists) {
             // If the user doesn't exist in Firestore, create a new document
-            await FirebaseFirestore.instance.collection("drivers").doc(uid).set({
+            await FirebaseFirestore.instance.collection("users").doc(uid).set({
               "uid": uid,
               "name": "Add Full Name",
+              "status": "approved",
               "phone": "Add Phone Number",
+              "address": "Add Address",
               "email": userEmail,
               "userAvatarUrl": "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png",
               "trackingPermission": trackingPermissionStatus,
@@ -310,31 +247,153 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
     }
   }
 
+  Future<void> appleSign() async {
+    AuthorizationResult authorizationResult =
+    await TheAppleSignIn.performRequests([
+      const AppleIdRequest(requestedScopes: [Scope.email, Scope.fullName])
+    ]);
 
+    switch (authorizationResult.status) {
+      case AuthorizationStatus.authorized:
+        print("authorized");
+        try {
+          AppleIdCredential? appleCredentials =
+              authorizationResult.credential;
+          OAuthProvider oAuthProvider = OAuthProvider("apple.com");
+          OAuthCredential oAuthCredential = oAuthProvider.credential(
+            idToken: String.fromCharCodes(appleCredentials!.identityToken!),
+            accessToken:
+            String.fromCharCodes(appleCredentials.authorizationCode!),
+          );
 
+          UserCredential userCredential = await FirebaseAuth.instance
+              .signInWithCredential(oAuthCredential);
+          if (userCredential.user != null) {
+            String uid = userCredential.user?.uid ?? "";
+            String userEmail = userCredential.user?.email ?? "";
+            bool trackingPermissionStatus =
+                sharedPreferences!.getBool("tracking") ?? false;
+
+            DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+                .collection("users")
+                .doc(uid)
+                .get();
+
+            if (!userSnapshot.exists) {
+              await FirebaseFirestore.instance
+                  .collection("users")
+                  .doc(uid)
+                  .set({
+                "uid": uid,
+                "email": userCredential.user!.email,
+                "name": "Add Full Name",
+                "phone": "Add Phone Number",
+                "address": "Add Delivery Address",
+                "userAvatarUrl":
+                "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png",
+                "status": "approved",
+                "trackingPermission": trackingPermissionStatus,
+              });
+            }
+
+            await readDataAndSetDataLocally(userCredential.user!);
+          }
+        } catch (e) {
+          print("Apple auth failed $e");
+        }
+
+        break;
+      case AuthorizationStatus.error:
+        print("error" + authorizationResult.error.toString());
+        break;
+      case AuthorizationStatus.cancelled:
+        print("cancelled");
+        break;
+      default:
+        print("none of the above: default");
+        break;
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser != null) {
+        final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        final UserCredential authResult =
+        await _auth.signInWithCredential(credential);
+        final User? user = authResult.user;
+
+        if (user != null) {
+          String uid = user.uid;
+          String userImageUrl = user.photoURL ?? "";
+          String userEmail = user.email ?? "";
+          String userName = user.displayName ?? "";
+
+          DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+              .collection("users")
+              .doc(uid)
+              .get();
+
+          if (!userSnapshot.exists) {
+            bool trackingPermissionStatus =
+                sharedPreferences!.getBool("tracking") ?? false;
+
+            FirebaseFirestore.instance.collection("users").doc(uid).set({
+              "uid": uid,
+              "email": userEmail,
+              "name": userName,
+              "phone": "Add Phone Number",
+              "address": "Add Delivery Address",
+              "userAvatarUrl": userImageUrl,
+              "status": "approved",
+              "trackingPermission": trackingPermissionStatus,
+            });
+          }
+
+          readDataAndSetDataLocally(user);
+        }
+      }
+    } catch (error) {
+      print("Google Sign-In Error: $error");
+    }
+  }
 
   Future readDataAndSetDataLocally(User currentUser) async {
     await FirebaseFirestore.instance
-        .collection("drivers")
+        .collection("users")
         .doc(currentUser.uid)
         .get()
         .then((snapshot) async {
       if (snapshot.exists) {
-
+        if (snapshot.data()!["status"] == "approved") {
           await sharedPreferences!.setString("uid", currentUser.uid);
           await sharedPreferences!.setString(
               "email", snapshot.data()!["email"]);
+          await sharedPreferences!.setString("name", snapshot.data()!["name"]);
           await sharedPreferences!.setString(
-              "name", snapshot.data()!["name"]);
+              "photoUrl", snapshot.data()!["userAvatarUrl"]);
           await sharedPreferences!.setString(
               "phone", snapshot.data()!["phone"]);
           await sharedPreferences!.setString(
-              "userAvatarUrl", snapshot.data()!["userAvatarUrl"]);
+              "address", snapshot.data()!["address"]);
 
           Navigator.pop(context);
           Navigator.push(
-              context, MaterialPageRoute(builder: (c) => MapScreen()));
-
+              context, MaterialPageRoute(builder: (c) => MyOrderPage()));
+        } else {
+          _auth.signOut();
+          Navigator.pop(context);
+          Fluttertoast.showToast(
+              msg: "Admin has blocked your account. \n\nMail here: polskoydm@gmail.com");
+        }
       } else {
         _auth.signOut();
         Navigator.pop(context);
@@ -385,41 +444,89 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                   ),
                 ),
               ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+              if (Platform.isIOS) // Check if the platform is iOS
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, 0), // Adjust padding here
+                  child: OutlinedButton(
+                    onPressed: () {
+                      appleSign();
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.black),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Continue with Apple",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w400,
+                            fontStyle: FontStyle.normal,
+                            fontSize: 14,
+                            color: Colors.black,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Image.asset(
+                          'images/apple.png',
+                          width: 50,
+                          height: 50,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
 
+              if (Platform.isAndroid) // Check if the platform is iOS
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      OutlinedButton(
+                        onPressed: () {
+                          _signInWithGoogle();
+                        },
+                        style: OutlinedButton.styleFrom( // Text color
+                          side: BorderSide(color: Colors.black), // Border color
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Continue with Google",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w400,
+                                fontStyle: FontStyle.normal,
+                                fontSize: 14,
+                                color: Colors.black, // Text color
+                              ),
+                            ),
+                            SizedBox(width: 8), // Add some spacing between the text and the icon
+                            Image.asset(
+                              'images/google.png', // Add the path to your Google logo image
+                              width: 50,
+                              height: 50,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    ],
+                  ),
+                ),
               Padding(
                 padding: EdgeInsets.fromLTRB(0, 8, 0, 0),
-                child: RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: "Continue with Email or",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w400,
-                          fontStyle: FontStyle.normal,
-                          fontSize: 14,
-                          color: Color(0xff9e9e9e),
-                        ),
-                      ),
-                      TextSpan(
-                        text: " login as Guest",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w400,
-                          fontSize: 14,
-                          color: Colors.blue, // You can customize the link's text style
-                        ),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () {
-                            loginAsGuest();// Add the action to perform when the link is clicked (e.g., navigate to the guest login page)
-                          },
-                      ),
-                    ],
+                child: Text(
+                  "Or Continue with Email",
+                  textAlign: TextAlign.start,
+                  overflow: TextOverflow.clip,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w400,
+                    fontStyle: FontStyle.normal,
+                    fontSize: 14,
+                    color: Color(0xff9e9e9e),
                   ),
                 ),
               ),
@@ -547,9 +654,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                       : MaterialButton(
                     onPressed: () {
                       // Change _isEmailSent to true when the "Send Code" button is pressed.
-                      setState(() {
-                        _isEmailSent = true;
-                      });
+
                       sendEmail();
                     },
                     color: Color(0xffffffff),
@@ -573,6 +678,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                   ),
                 ),
               ),
+
 
             ],
           ),

@@ -341,7 +341,6 @@ class _PaymentPageState extends State<PaymentPage> {
             child: ElevatedButton(
               onPressed: () => _clearCart(context),
               style: ElevatedButton.styleFrom(
-                primary: Colors.red,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -408,7 +407,6 @@ class _PaymentPageState extends State<PaymentPage> {
               }
                   : null,
               style: ElevatedButton.styleFrom(
-                primary: Colors.black,
                 shape: RoundedRectangleBorder(),
                 fixedSize: Size.fromHeight(60), // Set button height
               ),
@@ -443,7 +441,6 @@ class _PaymentPageState extends State<PaymentPage> {
             );
           },
           style: ElevatedButton.styleFrom(
-            primary: Colors.black, // Make the button black
             shape: RoundedRectangleBorder(),
             fixedSize: Size.fromHeight(60), // Set button height
           ),

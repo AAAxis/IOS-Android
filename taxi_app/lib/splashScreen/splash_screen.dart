@@ -2,10 +2,10 @@ import 'dart:async';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:taxi_app/authentication/auth_screen.dart';// import your authentication screen
 import 'package:taxi_app/mainScreens/home_screen.dart';
-import '../global/global.dart';
+import 'package:taxi_app/mainScreens/navigation.dart';
 
 class MySplashScreen extends StatefulWidget {
   const MySplashScreen({Key? key}) : super(key: key);
@@ -18,10 +18,24 @@ class _MySplashScreenState extends State<MySplashScreen> {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance; // Initialize Firebase Auth
 
   void _navigateToHomeScreen() {
-    Navigator.push(context, MaterialPageRoute(builder: (c) => MyHomePage()));
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (c) => Navigation()),
+    );
   }
 
-  void _requestPermissionManually() async {
+  void _navigateToAuthScreen() async {
+    // Request tracking permission
+    await _requestPermissionManually();
+
+    // Navigate to the login screen
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (c) => MergedLoginScreen()),
+    );
+  }
+
+  Future<void> _requestPermissionManually() async {
     final trackingStatus = await AppTrackingTransparency.requestTrackingAuthorization();
     print('Manual tracking permission request status: $trackingStatus');
 
@@ -34,20 +48,22 @@ class _MySplashScreenState extends State<MySplashScreen> {
       // User denied permission or not determined, store it as false
       await prefs.setBool('trackingPermissionStatus', false);
     }
-
-    // Continue with your application flow after checking tracking permission
-    Navigator.push(context, MaterialPageRoute(builder: (c) => MyHomePage()));
   }
 
   @override
   void initState() {
     super.initState();
+    _checkCurrentUser();
+  }
 
+  void _checkCurrentUser() {
     Timer(Duration(seconds: 3), () async {
-      if (firebaseAuth.currentUser != null) {
+      User? user = _firebaseAuth.currentUser;
+
+      if (user != null) {
         _navigateToHomeScreen();
       } else {
-        print('Waiting for response');
+        _navigateToAuthScreen();
       }
     });
   }
@@ -71,7 +87,7 @@ class _MySplashScreenState extends State<MySplashScreen> {
                   child: SizedBox(
                     width: 250,
                     height: 250,
-                    child: Image.asset("images/splash.png"),
+                    child: Image.asset("images/logo-color.png"),
                   ),
                 ),
                 const SizedBox(height: 30,),

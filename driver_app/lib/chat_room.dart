@@ -1,4 +1,5 @@
-import 'package:driver_app/map_page.dart';
+import 'package:driver_app/my_list.dart';
+import 'package:driver_app/widgets/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
@@ -165,7 +166,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   // Navigate to the home screen
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
-                        builder: (BuildContext context) => MapScreen()),
+                        builder: (BuildContext context) => MyOrderPage()),
                   );
                 } else {
                   // Handle the error if the API request fails

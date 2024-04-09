@@ -14,6 +14,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "868698601721-4ul1obg5ith3ng1roms99u3njbdbp4ju.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wheels.driverapp",
+            "certificate_hash": "110b06d208021359d927f62cc0efffb3eaa0f55a"
+          }
+        },
+        {
+          "client_id": "868698601721-mnr5gv99nm4mvh2pqpqapqnl5isi55ef.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wheels.driverapp",
+            "certificate_hash": "cfca26cea41e027676f8b7ef65a34d4eee92f81e"
+          }
+        },
+        {
           "client_id": "868698601721-gafc61dsfp14a0u6rnvhgfpsltpppoet.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -58,6 +74,14 @@
           }
         },
         {
+          "client_id": "868698601721-k4n04ah5qf5qur1884os3fhl502be0ns.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wheels.orderapp",
+            "certificate_hash": "cfca26cea41e027676f8b7ef65a34d4eee92f81e"
+          }
+        },
+        {
           "client_id": "868698601721-gafc61dsfp14a0u6rnvhgfpsltpppoet.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -93,6 +117,22 @@
         }
       },
       "oauth_client": [
+        {
+          "client_id": "868698601721-d8jb47o7ecf9v9097dvhm30t94jec270.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wheels.taxiapp",
+            "certificate_hash": "cfca26cea41e027676f8b7ef65a34d4eee92f81e"
+          }
+        },
+        {
+          "client_id": "868698601721-sn5m1u09vcp6q774l5vghfaij683k6po.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wheels.taxiapp",
+            "certificate_hash": "2d75e45e7735da6717b750dfc38d1989fc886544"
+          }
+        },
         {
           "client_id": "868698601721-gafc61dsfp14a0u6rnvhgfpsltpppoet.apps.googleusercontent.com",
           "client_type": 3

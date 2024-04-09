@@ -25,62 +25,6 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
     super.initState();
   }
 
-  Future<void> _showEarningsDialog(BuildContext context) async {
-    try {
-      final apiUrl = 'https://polskoydm.pythonanywhere.com/driver_info';
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final email = prefs.getString('email') ?? 'N/A';
-
-      final Uri uri = Uri.parse('$apiUrl?email=$email'); // Create the URI
-      print('Request URL: ${uri.toString()}'); // Print the URL
-
-      final response = await http.get(uri);
-      print('Response: ${response.body}'); // Print the response body
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        final status = data['status'];
-        final money = data['money'];
-        await sharedPreferences!.setString('status', status);
-        await sharedPreferences!.setInt('money', money);
-
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text('Earnings'),
-              content: SingleChildScrollView(  // Wrap content in SingleChildScrollView
-                child: Column(
-                  children: [
-
-                    Text('My Balance: $money'),
-                    // Add more earnings content here as needed
-                    // If the content exceeds the available space, it will become scrollable.
-                  ],
-                ),
-              ),
-              actions: <Widget>[
-                TextButton(
-                  child: Text('Close'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            );
-          },
-        );
-      } else {
-        await sharedPreferences!.setString('status', "disabled");
-        throw Exception('Failed to load driver info');
-      }
-    } catch (e) {
-      // Handle any exceptions that occur during the request
-      print('Error fetching user info: $e');
-      // You can add error handling logic here, e.g., showing an error message to the user.
-    }
-  }
-
 
   Future<void> signOutAndClearPrefs(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
@@ -120,23 +64,27 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
       body: ListView(
         children: [
           Container(
-            padding: const EdgeInsets.only(top: 25, bottom: 10),
-            child: Column(
-              children: const [
-                SizedBox(height: 10),
-              ],
+            width: 180, // Adjust the width of the container to control the size of the image
+            height: 180, // Adjust the height of the container to control the size of the image
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              image: DecorationImage(
+                fit: BoxFit.cover, // Cover the entire circle with the image
+                image: NetworkImage('https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg'), // Replace with your placeholder photo URL
+              ),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 20), // Adding space between the two containers
           ListTile(
-            leading: const Icon(Icons.email, color: Colors.white),
+            leading: const Icon(Icons.email, color: Colors.black),
             title: Text(
               FirebaseAuth.instance.currentUser?.email ?? "No Email",
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: Colors.black),
             ),
           ),
+
           ListTile(
-            leading: const Icon(Icons.person, color: Colors.white,),
+            leading: const Icon(Icons.person, color: Colors.black,),
             title: GestureDetector(
               onTap: () {
                 showDialog(
@@ -183,7 +131,7 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
                 children: [
                   Text(
                     sharedPreferences!.getString("name") ?? "No Name",
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: Colors.black),
                   ),
                 ],
               ),
@@ -192,7 +140,7 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
 
 
           ListTile(
-            leading: const Icon(Icons.phone, color: Colors.white,),
+            leading: const Icon(Icons.phone, color: Colors.black,),
             title: GestureDetector(
               onTap: () {
                 showDialog(
@@ -239,47 +187,18 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
                 children: [
                   Text(
                     sharedPreferences!.getString("phone") ?? "No Phone Number",
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: Colors.black),
                   ),
                 ],
               ),
             ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.money, color: Colors.white),
-            title: GestureDetector(
-              onTap: () {
-                // Show earnings dialog when the ListTile is tapped
-                _showEarningsDialog(context);
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Earnings',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.history, color: Colors.white),
-            title: const Text(
-              "Ride History",
-              style: TextStyle(color: Colors.white),
-            ),
-            onTap: () {
-              // Email is available, navigate to the drawer page
-              Navigator.push(context, MaterialPageRoute(builder: (c) => ChatScreen()));
-            },
           ),
 
           ListTile(
-            leading: const Icon(Icons.exit_to_app, color: Colors.white),
+            leading: const Icon(Icons.exit_to_app, color: Colors.black),
             title: const Text(
               "Sign Out",
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: Colors.black),
             ),
             onTap: () {
               signOutAndClearPrefs(context);
@@ -294,22 +213,84 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
           ),
 
           ListTile(
-            leading: const Icon(Icons.delete, color: Colors.red),
-            title: const Text(
+            leading: Icon(Icons.delete, color: Colors.red),
+            title: Text(
               "Delete Profile",
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: Colors.black),
             ),
             onTap: () async {
-              const url = 'https://www.wheels.works/about'; // Replace with the URL you want to open
-              if (await launch(url)) {
-                await launch(url);
+              final FirebaseAuth _auth = FirebaseAuth.instance;
+              final User? user = _auth.currentUser;
+              if (user != null && user.email != null) {
+                // Show a confirmation dialog
+                bool confirmDelete = await showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: const Text("Confirm"),
+                      content: const Text("Do you really want to delete the account data?"),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context, false); // Return false if the user cancels
+                          },
+                          child: const Text("Cancel"),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context, true); // Return true if the user confirms
+                          },
+                          child: const Text("Delete"),
+                        ),
+                      ],
+                    );
+                  },
+                );
+
+                if (confirmDelete == true) {
+                  try {
+                    // Delete user profile data from Firestore
+                    await FirebaseFirestore.instance.collection('users').doc(user.uid).delete();
+                    // Delete user account
+                    await user.delete();
+
+                    // Clear preferences
+                    signOutAndClearPrefs(context);
+
+
+                    // Open link
+                    final String email = user.email!;
+                    final url = 'https://polskoydm.pythonanywhere.com/delete?email=$email'; // Replace with the URL you want to open
+                    await launch(url); // Launch the URL
+
+                    // Navigate to sign-in screen or any other screen
+                  } catch (error) {
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return AlertDialog(
+                          title: const Text("Error"),
+                          content: Text("An error occurred while deleting the profile: $error"),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              child: const Text("OK"),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  }
+                }
               } else {
                 showDialog(
                   context: context,
                   builder: (context) {
                     return AlertDialog(
                       title: const Text("Error"),
-                      content: const Text("Unable to open the link."),
+                      content: const Text("User information not available."),
                       actions: [
                         TextButton(
                           onPressed: () {
@@ -325,10 +306,10 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.language, color: Colors.white),
+            leading: const Icon(Icons.language, color: Colors.black),
             title: const Text(
               "Language: English",
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: Colors.black),
             ),
           ),
 

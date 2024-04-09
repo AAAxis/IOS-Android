@@ -83,12 +83,10 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
-              "Delivery",
+              "Search Restaurants ",
               style: TextStyle(
-                fontSize: 35.0,
-                fontWeight: FontWeight.normal,
-                color: Colors.black,
-                fontFamily: 'Signatra', // Use the 'Cupertino' font
+                fontSize: 20.0,
+                color: Colors.grey, // Use the 'Cupertino' font
               ),
             ),
           ),
