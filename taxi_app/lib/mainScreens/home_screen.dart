@@ -24,15 +24,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
 
-  void _openTelegram(String username) async {
-    // Replace <username> with the username you want to open in Telegram
-    String url = 'https://t.me/$username';
-    if (await launch(url)) {
-      await launch(url);
-    } else {
-      throw 'Could not launch $url';
-    }
-  }
+
   Future<void> signOutAndClearPrefs(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
     final prefs = await SharedPreferences.getInstance();
@@ -90,16 +82,6 @@ Divider(),
                 context,
                 MaterialPageRoute(builder: (context) => MultiStepRegistrationScreen()),
               );
-            },
-          ),
-          Divider(),
-          ListTile(
-            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Adjust padding as needed
-            leading: Icon(Icons.help_outline_sharp),
-            title: Text('Help'),
-            onTap: () {
-              // Add your action for Insurance]
-              _openTelegram('+16474724580');
             },
           ),
 

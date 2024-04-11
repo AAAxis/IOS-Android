@@ -118,11 +118,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "868698601721-c7cbrnuvl4as9eint2030lvas6vje3us.apps.googleusercontent.com",
+          "client_id": "868698601721-d8jb47o7ecf9v9097dvhm30t94jec270.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.wheels.taxiapp",
-            "certificate_hash": "0034aa71034821e081f91e078d6c238e5959901d"
+            "certificate_hash": "cfca26cea41e027676f8b7ef65a34d4eee92f81e"
           }
         },
         {

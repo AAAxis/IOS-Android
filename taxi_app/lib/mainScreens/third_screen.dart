@@ -9,6 +9,17 @@ class ThirdScreen extends StatefulWidget {
   _ThirdScreenState createState() => _ThirdScreenState();
 }
 
+
+void _openTelegram(String username) async {
+  // Replace <username> with the username you want to open in Telegram
+  String url = 'https://t.me/$username';
+  if (await launch(url)) {
+    await launch(url);
+  } else {
+    throw 'Could not launch $url';
+  }
+}
+
 class _ThirdScreenState extends State<ThirdScreen> {
   int _money = 0;
 
@@ -64,9 +75,10 @@ class _ThirdScreenState extends State<ThirdScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
+              height: 160.0, // Double the height
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10.0),
+                color: Colors.blueAccent, // Change color as needed
+                borderRadius: BorderRadius.circular(20.0), // Increase border radius for a rounded card
                 boxShadow: [
                   BoxShadow(
                     color: Colors.grey.withOpacity(0.5),
@@ -76,18 +88,42 @@ class _ThirdScreenState extends State<ThirdScreen> {
                   ),
                 ],
               ),
-              padding: EdgeInsets.all(10.0),
+              padding: EdgeInsets.all(20.0), // Increase padding for more space
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(Icons.account_balance_wallet),
-                  SizedBox(width: 10),
-                  Text(
-                    'My Balance: $_money',
-                    style: TextStyle(fontSize: 24),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'My Balance',
+                        style: TextStyle(
+                          fontSize: 20, // Increase font size for the title
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      SizedBox(height: 50), // Add more space between title and balance
+                      Text(
+                        '\$$_money',
+                        style: TextStyle(
+                          fontSize: 26, // Increase font size for the balance
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Icon(
+                    Icons.account_balance_wallet,
+                    color: Colors.white,
+                    size: 60, // Increase icon size
                   ),
                 ],
               ),
             ),
+
             SizedBox(height: 20),
             Container(
               decoration: BoxDecoration(
@@ -108,7 +144,7 @@ class _ThirdScreenState extends State<ThirdScreen> {
                   Icon(Icons.star),
                   SizedBox(width: 10),
                   Text(
-                    'Customer Rating: 87%',
+                    'Customer Rating: 100%',
                     style: TextStyle(fontSize: 18),
                   ),
                 ],
@@ -134,7 +170,7 @@ class _ThirdScreenState extends State<ThirdScreen> {
                   Icon(Icons.local_shipping),
                   SizedBox(width: 10),
                   Text(
-                    '508 Lifetime Deliveries',
+                    '0 Lifetime Deliveries',
                     style: TextStyle(fontSize: 18),
                   ),
                 ],
@@ -218,6 +254,17 @@ class _ThirdScreenState extends State<ThirdScreen> {
               ),
             ),
             SizedBox(height: 20),
+            Divider(),
+            ListTile(
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Adjust padding as needed
+              leading: Icon(Icons.help_outline_sharp),
+              title: Text('Help'),
+              onTap: () {
+                // Add your action for Insurance]
+                _openTelegram('+16474724580');
+              },
+            ),
+
 
 
           ],

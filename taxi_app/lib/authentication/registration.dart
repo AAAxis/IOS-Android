@@ -1,5 +1,8 @@
 
 import 'dart:convert';
+import 'package:taxi_app/global/global.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -21,16 +24,17 @@ class MultiStepRegistrationScreen extends StatefulWidget {
 class _MultiStepRegistrationScreenState
     extends State<MultiStepRegistrationScreen> {
   PageController _pageController = PageController(initialPage: 0);
-  TextEditingController _emailController = TextEditingController();
+
+  TextEditingController _emailController =  TextEditingController();
   TextEditingController _nameController = TextEditingController();
   TextEditingController _phoneController = TextEditingController();
   TextEditingController codeController = TextEditingController();
   String? _selectedEmploymentType;
   String? _selectedAccountType;
-  bool _interestedInRental = false;
+
   String? _selectedCity = "Tel Aviv";
-  String? _selectedScheduleType;
-  List<String> _selectedProviders = [];
+  String? _selectedProviders;
+
   int _currentPage = 0;
   bool _isEmailSent = false;
   String? verificationCode;
@@ -43,7 +47,10 @@ class _MultiStepRegistrationScreenState
     _nameController.dispose();
     _pageController.dispose();
     super.dispose();
+
   }
+
+
 
   Future<void> _sendRegistrationData() async {
     final email = _emailController.text.trim();
@@ -52,8 +59,6 @@ class _MultiStepRegistrationScreenState
     final employmentType = _selectedEmploymentType;
     final city = _selectedCity;
     final accountType = _selectedAccountType;
-    final interestedInRental = _interestedInRental;
-    final scheduleType = _selectedScheduleType;
     final providers = _selectedProviders;
 
     final data = {
@@ -63,8 +68,6 @@ class _MultiStepRegistrationScreenState
       'employmentType': employmentType,
       'city': city,
       'accountType': accountType,
-      'interestedInRental': interestedInRental,
-      'scheduleType': scheduleType,
       'providers': providers,
     };
 
@@ -185,7 +188,7 @@ class _MultiStepRegistrationScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Multi-Step Registration'),
+        title: Text('Multi-Step Application'),
       ),
       body: PageView(
         controller: _pageController,
@@ -206,22 +209,39 @@ class _MultiStepRegistrationScreenState
       ),
     );
   }
-
   Widget _buildFirstPage() {
+    // Get SharedPreferences values
+    String email = sharedPreferences!.getString("email") ?? "No Email";
+    String name = sharedPreferences!.getString("name") ?? "No Name";
+    String phone = sharedPreferences!.getString("phone") ?? "No Phone";
+
+    // Set controller text to SharedPreferences values
+    _emailController.text = email;
+    _nameController.text = name;
+    _phoneController.text = phone;
+
+    void updateName(String newName) {
+      setState(() {
+        sharedPreferences!.setString("name", newName);
+      });
+    }
+
+    void updatePhone(String newPhone) {
+      setState(() {
+        sharedPreferences!.setString("phone", newPhone);
+      });
+    }
+
     return _buildPage(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          TextField(
-            controller: _emailController,
-            decoration: InputDecoration(
-              labelText: 'Email',
-              prefixIcon: Icon(Icons.email), // Add email icon
-            ),
-          ),
-          SizedBox(height: 20.0),
+
           TextField(
             controller: _nameController,
+            onTap: () {
+              _nameController.clear(); // Clear the text field when tapped
+            },
             decoration: InputDecoration(
               labelText: 'Full Name',
               prefixIcon: Icon(Icons.person), // Add person icon
@@ -230,6 +250,9 @@ class _MultiStepRegistrationScreenState
           SizedBox(height: 20.0),
           TextField(
             controller: _phoneController,
+            onTap: () {
+              _phoneController.clear(); // Clear the text field when tapped
+            },
             decoration: InputDecoration(
               labelText: 'Phone',
               prefixIcon: Icon(Icons.phone), // Add phone icon
@@ -237,25 +260,89 @@ class _MultiStepRegistrationScreenState
           ),
           SizedBox(height: 20.0),
 
+          Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Delivery City',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(width: 10), // Adjust spacing between the label and the DropdownButton if needed
+                DropdownButton<String>(
+                  value: _selectedCity,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedCity = newValue!;
+                    });
+                  },
+                  items: [
+                    'Haifa',
+                    'Tel Aviv', // Default value set to "Tel Aviv"
+                    'Bat Yam',
+                    'Holon',
+                    'Ramat Gan',
+                    'Netanya',
+                  ].map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+
+          SizedBox(height: 20.0),
           ElevatedButton(
-            onPressed: () {
-              if (_emailController.text.isEmpty ||
-                  _nameController.text.isEmpty ||
-                  _phoneController.text.isEmpty ||
-                  !validateEmail(_emailController.text) ||
-                  !validatePhone(_phoneController.text)) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text('Please fill all fields correctly.'),
-                ));
-              } else {
+            onPressed: () async {
+              if (validatePhone(_phoneController.text)) {
+                final newPhone = _phoneController.text;
+                final newName = _nameController.text;
+                final user =
+                    FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  final userDocRef = FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(user.uid);
+                  await userDocRef.update({'phone': newPhone});
+                  updatePhone(newPhone);
+                  await userDocRef.update({'name': newName});
+                  updateName(newName);
+                }
+
+                // Proceed to the next step
                 _pageController.nextPage(
                   duration: Duration(milliseconds: 300),
                   curve: Curves.ease,
+                );
+              } else {
+                // Show an error message indicating that the phone number is invalid
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: Text('Invalid Phone Number'),
+                      content: Text('Please enter a valid phone number.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          child: Text('OK'),
+                        ),
+                      ],
+                    );
+                  },
                 );
               }
             },
             child: Text('Next'),
           ),
+
+
+
         ],
       ),
     );
@@ -319,40 +406,7 @@ class _MultiStepRegistrationScreenState
             ),
           ),
           SizedBox(height: 20),
-          Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Delivery City',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                SizedBox(width: 10), // Adjust spacing between the label and the DropdownButton if needed
-                DropdownButton<String>(
-                  value: _selectedCity,
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedCity = newValue!;
-                    });
-                  },
-                  items: [
-                    'Haifa',
-                    'Tel Aviv', // Default value set to "Tel Aviv"
-                    'Bat Yam',
-                    'Holon',
-                    'Ramat Gan',
-                    'Netanya',
-                  ].map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 20),
+
           ElevatedButton(
             onPressed: _isSelectionMade2 ? () {
               // Proceed to the next step
@@ -446,20 +500,7 @@ class _MultiStepRegistrationScreenState
             ),
           ),
           SizedBox(height: 20),
-          Row(
-            children: [
-              Checkbox(
-                value: _interestedInRental,
-                onChanged: (bool? value) {
-                  setState(() {
-                    _interestedInRental = value!;
-                  });
-                },
-              ),
-              Text('I am interested in rental motorcycle'),
-            ],
-          ),
-          SizedBox(height: 20),
+
           ElevatedButton(
             onPressed: isSelectionMade3
                 ? () {
@@ -479,7 +520,7 @@ class _MultiStepRegistrationScreenState
 
 
   bool _isSelectionMade() {
-    return _selectedScheduleType != null && _selectedProviders.isNotEmpty;
+    return _selectedProviders != null;
   }
 
   Widget _buildFourthPage() {
@@ -488,7 +529,7 @@ class _MultiStepRegistrationScreenState
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           Text(
-            'Schedule Type',
+            'Select Service',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 20),
@@ -496,33 +537,44 @@ class _MultiStepRegistrationScreenState
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               Radio(
-                value: 'Full Time',
-                groupValue: _selectedScheduleType,
+                value: 'Ten Bis',
+                groupValue: _selectedProviders,
                 onChanged: (value) {
                   setState(() {
-                    _selectedScheduleType = value.toString();
+                    _selectedProviders = value.toString();
                   });
                 },
               ),
-              Text('Full Time'),
+              Text('Ten Bis'),
               SizedBox(width: 20),
               Radio(
-                value: 'Part Time',
-                groupValue: _selectedScheduleType,
+                value: 'Yango Deli',
+                groupValue: _selectedProviders,
                 onChanged: (value) {
                   setState(() {
-                    _selectedScheduleType = value.toString();
+                    _selectedProviders = value.toString();
                   });
                 },
               ),
-              Text('Part Time'),
+              Text('Yango'),
+              SizedBox(width: 20),
+              Radio(
+                value: 'Japanika',
+                groupValue: _selectedProviders,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedProviders = value.toString();
+                  });
+                },
+              ),
+              Text('Japanika'),
             ],
           ),
           SizedBox(height: 20),
           Card(
             child: ListTile(
               leading: Icon(Icons.hardware),
-              title: Text('Full Time'),
+              title: Text('Yango'),
               subtitle:
               Text('40 hours a week, Not Limited'),
             ),
@@ -531,61 +583,26 @@ class _MultiStepRegistrationScreenState
           Card(
             child: ListTile(
               leading: Icon(Icons.lightbulb_outline),
-              title: Text('Part Time'),
+              title: Text('Japanika'),
               subtitle: Text('20 hours a week, flexible'),
             ),
           ),
-          SizedBox(height: 20),
-          Text(
-            'Select Provider',
-            style: TextStyle(fontWeight: FontWeight.bold),
+
+          SizedBox(height: 10),
+          Card(
+            child: ListTile(
+              leading: Icon(Icons.lightbulb_outline),
+              title: Text('Ten Bis'),
+              subtitle: Text('20 hours a week, flexible'),
+            ),
           ),
 
-          CheckboxListTile(
-            title: Text('TenBis'),
-            value: _selectedProviders.contains('TenBis'),
-            onChanged: (value) {
-              setState(() {
-                if (value!) {
-                  _selectedProviders.add('TenBis');
-                } else {
-                  _selectedProviders.remove('TenBis');
-                }
-              });
-            },
-          ),
 
-          CheckboxListTile(
-            title: Text('Yango Deli'),
-            value: _selectedProviders.contains('Yango Deli'),
-            onChanged: (value) {
-              setState(() {
-                if (value!) {
-                  _selectedProviders.add('Yango Deli');
-                } else {
-                  _selectedProviders.remove('Yango Deli');
-                }
-              });
-            },
-          ),
-          CheckboxListTile(
-            title: Text('Japanika'),
-            value: _selectedProviders.contains('Japanika'),
-            onChanged: (value) {
-              setState(() {
-                if (value!) {
-                  _selectedProviders.add('Japanika');
-                } else {
-                  _selectedProviders.remove('Japanika');
-                }
-              });
-            },
-          ),
           SizedBox(height: 20),
           ElevatedButton(
             onPressed: _isSelectionMade()
                 ? () {
-              sendSMS();
+              sendEmail();
               // Proceed to the next step or perform any action
               _pageController.nextPage(
                 duration: Duration(milliseconds: 300),
@@ -619,7 +636,7 @@ class _MultiStepRegistrationScreenState
           TextField(
             controller: codeController, // Assign the controller here
             decoration: InputDecoration(
-              labelText: 'Enter 4-digit Code',
+              labelText: 'Enter 6-digit Code',
             ),
           ),
           SizedBox(height: 10),
@@ -633,10 +650,10 @@ class _MultiStepRegistrationScreenState
               ),
               TextButton(
                 onPressed: () {
-                  sendEmail(); // Call the sendEmail function when the button is pressed
+                  sendSMS(); // Call the sendEmail function when the button is pressed
                 },
                 child: Text(
-                  'Email',
+                  'SMS',
                   style: TextStyle(
                     fontWeight: FontWeight.normal,
                     color: Colors.blue,
@@ -683,15 +700,7 @@ class _MultiStepRegistrationScreenState
 
 
 
-  bool validateEmail(String text) {
 
-    // Regex pattern for email validation
-    // This pattern is a simple one and may not cover all cases.
-    // For more accurate validation, consider using a more comprehensive pattern.
-    String emailPattern = r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$';
-    RegExp regExp = RegExp(emailPattern);
-    return regExp.hasMatch(text);
-  }
 
   bool validatePhone(String text) {
     // Regex pattern for phone number validation
