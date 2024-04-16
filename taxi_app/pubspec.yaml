@@ -19,7 +19,8 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ">=2.17.0 <3.0.0"
+  sdk: '>=3.2.0-0 <4.0.0'
+
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -45,10 +46,11 @@ dependencies:
   geocoding: ^2.0.1
   geolocator: ^7.6.2 # Add the geolocator package
   bottom_navy_bar: ^6.0.0
-  intl: ^0.17.0 # Use the latest version
+  intl: ^0.19.0
   table_calendar: ^3.0.0
   flutter_staggered_grid_view: ^0.4.0
   firebase_core: ^2.28.0
+  awesome_notifications: ^0.9.3+1
   firebase_auth: ^4.19.0
   webview_flutter: ^3.0.0
   cloud_firestore: ^4.16.0

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
@@ -10,15 +11,17 @@ class ThirdScreen extends StatefulWidget {
 }
 
 
-void _openTelegram(String username) async {
-  // Replace <username> with the username you want to open in Telegram
-  String url = 'https://t.me/$username';
+// Function to launch the URL
+void _launchURL(String url) async {
   if (await launch(url)) {
     await launch(url);
   } else {
     throw 'Could not launch $url';
   }
 }
+
+
+
 
 class _ThirdScreenState extends State<ThirdScreen> {
   int _money = 0;
@@ -33,7 +36,7 @@ class _ThirdScreenState extends State<ThirdScreen> {
     try {
       final apiUrl = 'https://polskoydm.pythonanywhere.com/driver_info';
       // Assuming you have a fixed email for testing
-      final email = 'test@example.com';
+      final email = FirebaseAuth.instance.currentUser?.email ?? "No Email";
 
       final Uri uri = Uri.parse('$apiUrl?email=$email'); // Create the URI
 
@@ -190,25 +193,16 @@ class _ThirdScreenState extends State<ThirdScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Fake transfers table
-                            DataTable(
-                              columns: [
-                                DataColumn(label: Text('Date')),
-                                DataColumn(label: Text('Amount')),
-                              ],
-                              rows: [
-                                DataRow(cells: [
-                                  DataCell(Text('2024-04-01')),
-                                  DataCell(Text('\$1440')),
-                                ]),
+                            // Replace this with your transfers table widget
 
-                                // Add more rows if needed
-                              ],
-                            ),
+                            SizedBox(height: 20),
+                            // Check if there are deposits
+
+                            Text('No deposits yet'), // Display message when no deposits
                             SizedBox(height: 20),
                             // Bank Account
                             Row(
                               children: [
-
                                 ElevatedButton(
                                   onPressed: () {
                                     Navigator.push(
@@ -253,6 +247,7 @@ class _ThirdScreenState extends State<ThirdScreen> {
                 ),
               ),
             ),
+
             SizedBox(height: 20),
             Divider(),
             ListTile(
@@ -261,7 +256,8 @@ class _ThirdScreenState extends State<ThirdScreen> {
               title: Text('Help'),
               onTap: () {
                 // Add your action for Insurance]
-                _openTelegram('+16474724580');
+                _launchURL('https://theholylabs.com/privacy'); // Replace the URL with your terms and conditions URL
+
               },
             ),
 
