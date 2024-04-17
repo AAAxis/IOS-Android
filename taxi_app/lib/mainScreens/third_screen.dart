@@ -256,7 +256,7 @@ class _ThirdScreenState extends State<ThirdScreen> {
               title: Text('Help'),
               onTap: () {
                 // Add your action for Insurance]
-                _launchURL('https://theholylabs.com/privacy'); // Replace the URL with your terms and conditions URL
+                _launchURL('https://theholylabs.com'); // Replace the URL with your terms and conditions URL
 
               },
             ),

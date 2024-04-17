@@ -80,6 +80,17 @@ class _MultiStepRegistrationScreenState
 
       if (response.statusCode == 200) {
         // Handle success
+
+        // Update status to "approved" in Firebase
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+          await userDocRef.update({'status': 'approved'});
+        }
+
+        // Update shared preferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('status', 'approved');
       } else {
         // Handle failure
       }
@@ -87,7 +98,6 @@ class _MultiStepRegistrationScreenState
       // Handle error
     }
   }
-
 
   Future<void> sendSMS() async {
     final phone = _phoneController.text.trim();
@@ -236,11 +246,22 @@ class _MultiStepRegistrationScreenState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-
           TextField(
             controller: _nameController,
             onTap: () {
-              _nameController.clear(); // Clear the text field when tapped
+              if (_nameController.text == "Add Full Name") {
+                _nameController.clear();
+              }
+            },
+            onChanged: (value) {
+              if (value.trim().isEmpty) {
+                setState(() {
+                  _nameController.text = "Add Full Name";
+                  _nameController.selection = TextSelection.fromPosition(
+                    TextPosition(offset: _nameController.text.length),
+                  );
+                });
+              }
             },
             decoration: InputDecoration(
               labelText: 'Full Name',
@@ -297,6 +318,27 @@ class _MultiStepRegistrationScreenState
           SizedBox(height: 20.0),
           ElevatedButton(
             onPressed: () async {
+              if (_nameController.text.trim().isEmpty || _nameController.text == "Add Full Name") {
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: Text('Invalid Name'),
+                      content: Text('Please enter a valid name.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          child: Text('OK'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+                return;
+              }
+
               if (validatePhone(_phoneController.text)) {
                 final newPhone = _phoneController.text;
                 final newName = _nameController.text;
@@ -340,9 +382,6 @@ class _MultiStepRegistrationScreenState
             },
             child: Text('Next'),
           ),
-
-
-
         ],
       ),
     );

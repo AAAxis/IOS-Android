@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:taxi_app/authentication/registration.dart';
 import 'package:taxi_app/mainScreens/bank.dart';
 import 'package:taxi_app/mainScreens/bills.dart';
 import 'package:taxi_app/mainScreens/documents.dart';
@@ -13,7 +14,6 @@ import 'package:taxi_app/widgets/my_drawer.dart';
 import '../authentication/auth_screen.dart';
 import 'third_screen.dart';
 
-
 class Navigation extends StatefulWidget {
   @override
   _NavigationState createState() => _NavigationState();
@@ -21,7 +21,6 @@ class Navigation extends StatefulWidget {
 
 class _NavigationState extends State<Navigation> {
   int _currentIndex = 0;
-
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   Future<void> signOutAndClearPrefs(BuildContext context) async {
@@ -34,66 +33,15 @@ class _NavigationState extends State<Navigation> {
     );
   }
 
-  Future<void> _showEarningsDialog(BuildContext context) async {
-    try {
-      final apiUrl = 'https://polskoydm.pythonanywhere.com/driver_info';
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final email = prefs.getString('email') ?? 'N/A';
 
-      final Uri uri = Uri.parse('$apiUrl?email=$email'); // Create the URI
-      print('Request URL: ${uri.toString()}'); // Print the URL
+  Future<Widget> _getEarningsPage(BuildContext context) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final status = prefs.getString('status');
 
-      final response = await http.get(uri);
-      print('Response: ${response.body}'); // Print the response body
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        final money = data['money'];
-        await SharedPreferences.getInstance().then((sharedPreferences) {
-          sharedPreferences.setInt('money', money);
-        });
-
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text('Monthly Deposit'),
-              content: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    Text('My Balance: $money'),
-                    SizedBox(height: 10), // Add some spacing between the text and button
-                    ElevatedButton(
-                      onPressed: () {
-                        // Navigate to EditBankScreen when the button is pressed
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => EditBankScreen()),
-                        );
-                      },
-                      child: Text('Payout Method'),
-                    ),
-                  ],
-                ),
-              ),
-              actions: <Widget>[
-                TextButton(
-                  child: Text('Close'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            );
-          },
-        );
-      } else {
-        throw Exception('Failed to load driver info');
-      }
-    } catch (e) {
-      // Handle any exceptions that occur during the request
-      print('Error fetching user info: $e');
-      // You can add error handling logic here, e.g., showing an error message to the user.
+    if (status == 'approved') {
+      return ThirdScreen();
+    } else {
+      return MultiStepRegistrationScreen();
     }
   }
 
@@ -101,16 +49,21 @@ class _NavigationState extends State<Navigation> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-
       body: IndexedStack(
         index: _currentIndex,
         children: [
           MyHomePage(),
           ScheduleScreen(),
-
-          ThirdScreen()
-
-
+          FutureBuilder<Widget>(
+            future: _getEarningsPage(context),
+            builder: (BuildContext context, AsyncSnapshot<Widget> snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              } else {
+                return snapshot.data ?? Container(); // Return a default widget if snapshot.data is null
+              }
+            },
+          ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -127,12 +80,11 @@ class _NavigationState extends State<Navigation> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.schedule),
-            label: 'Schedudle',
+            label: 'Schedule',
           ),
-
           BottomNavigationBarItem(
             icon: Icon(Icons.money_sharp),
-            label: 'Earnings',
+            label: 'Earnings', // Initial label while waiting for future
           ),
         ],
       ),

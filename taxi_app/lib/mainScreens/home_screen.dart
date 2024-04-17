@@ -71,19 +71,6 @@ Divider(),
               );
             },
           ),
-          Divider(),
-          ListTile(
-            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Adjust padding as needed
-            leading: Icon(Icons.document_scanner_outlined),
-            title: Text('Driver Contract'),
-            onTap: () {
-              // Add your action for Rental Vehicle
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MultiStepRegistrationScreen()),
-              );
-            },
-          ),
 
           Divider(),
           ListTile(

@@ -4,6 +4,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; // Import http package
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:taxi_app/mainScreens/documents.dart';
+import 'package:taxi_app/mainScreens/home_screen.dart';
 import 'package:taxi_app/mainScreens/navigation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -16,28 +18,20 @@ String? _selectedLocation = 'Get-Moto Tel Aviv'; // Set default location to Tel 
 DateTime? _selectedDate = DateTime.now(); // Set default date to today
 String? _selectedVehicleType = 'Honda PCX 2023'; // New field for vehicle type
 bool _termsAndConditionsAccepted = false;
+User? user = FirebaseAuth.instance.currentUser;
+
+
+// Function to launch the URL
+void _launchURL(String url) async {
+  if (await launch(url)) {
+    await launch(url);
+  } else {
+    throw 'Could not launch $url';
+  }
+}
+
 
 class _RentalScreenState extends State<RentalScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // Delay execution of _openBottomSheet until the widget tree is fully initialized
-    WidgetsBinding.instance!.addPostFrameCallback((_) {
-      _openBottomSheet();
-    });
-  }
-
-
-
-  // Function to launch the URL
-  void _launchURL(String url) async {
-    if (await launch(url)) {
-      await launch(url);
-    } else {
-      throw 'Could not launch $url';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,8 +44,99 @@ class _RentalScreenState extends State<RentalScreen> {
           Image.asset(
             'images/moto.png',
             fit: BoxFit.cover,
-            height: 400.0,
+            height: 300.0,
             width: MediaQuery.of(context).size.width, // Ensure image takes full width
+          ),
+        // Assuming you have access to FirebaseAuth instance
+
+
+
+          Flexible(
+            child: StreamBuilder(
+              stream: FirebaseFirestore.instance.collection('driver_license')
+                  .where('user_email', isEqualTo: user?.email) // Filter by user's email
+                  .snapshots(),
+              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (snapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'We collect driver license for our rental service to provide you with the best experience and ensure your safety. Thank you for your cooperation!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => DriverLicenseScreen()),
+                            );
+                          },
+                          child: Text('Add Document'),
+                        ),
+                        SizedBox(height: 16),
+                      ],
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    DocumentSnapshot document = snapshot.data!.docs[index];
+                    Map<String, dynamic> data = document.data() as Map<String, dynamic>;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text(
+                            '    Please select a driver license to continue',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        ListTile(
+                          onTap: () {
+                            _openBottomSheet();
+                          },
+                          leading: Image.network(
+                            data['image_url'],
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                          ),
+                          title: Text('Number: ${data['number']}'),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Name: ${data['name']}'),
+                              Text('DOB: ${data['dob']}'),
+                            ],
+                          ),
+                          trailing: IconButton(
+                            icon: Icon(Icons.delete),
+                            onPressed: () {
+                              _deleteDocument(document.id);
+                            },
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -228,6 +313,7 @@ class _RentalScreenState extends State<RentalScreen> {
                             ),
                           ),
                         ),
+
                       ],
                     ),
                     SizedBox(height: 16.0),
@@ -240,7 +326,7 @@ class _RentalScreenState extends State<RentalScreen> {
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Please select all info'),
+                              content: Text('Please select location, date, and verify age.'),
                             ),
                           );
                         }
@@ -309,6 +395,15 @@ class _RentalScreenState extends State<RentalScreen> {
       }
     } catch (e) {
       print('Error submitting data: $e');
+      // Handle error accordingly, e.g., show a snackbar
+    }
+  }
+
+  Future<void> _deleteDocument(String documentId) async {
+    try {
+      await FirebaseFirestore.instance.collection('driver_license').doc(documentId).delete();
+    } catch (e) {
+      print('Error deleting document: $e');
       // Handle error accordingly, e.g., show a snackbar
     }
   }

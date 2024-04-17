@@ -3,10 +3,8 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:taxi_app/mainScreens/home_screen.dart';
 import 'package:taxi_app/mainScreens/navigation.dart';
 import 'package:the_apple_sign_in/the_apple_sign_in.dart';
 import 'package:http/http.dart' as http;
@@ -146,7 +144,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
             await FirebaseFirestore.instance.collection("users").doc(uid).set({
               "uid": uid,
               "name": "Add Full Name",
-              "status": "approved",
+              "status": "disabled",
               "phone": "Add Phone Number",
               "address": "Add Address",
               "email": userEmail,
@@ -292,7 +290,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                 "address": "Add Delivery Address",
                 "userAvatarUrl":
                 "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png",
-                "status": "approved",
+                "status": "disabled",
                 "trackingPermission": trackingPermissionStatus,
               });
             }
@@ -354,7 +352,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
               "phone": "Add Phone Number",
               "address": "Add Delivery Address",
               "userAvatarUrl": userImageUrl,
-              "status": "approved",
+              "status": "disabled",
               "trackingPermission": trackingPermissionStatus,
             });
           }
@@ -374,7 +372,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
         .get()
         .then((snapshot) async {
       if (snapshot.exists) {
-        if (snapshot.data()!["status"] == "approved") {
+
           await sharedPreferences!.setString("uid", currentUser.uid);
           await sharedPreferences!.setString(
               "email", snapshot.data()!["email"]);
@@ -384,17 +382,12 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
           await sharedPreferences!.setString(
               "phone", snapshot.data()!["phone"]);
           await sharedPreferences!.setString(
-              "address", snapshot.data()!["address"]);
+              "status", snapshot.data()!["status"]);
 
           Navigator.pop(context);
           Navigator.push(
               context, MaterialPageRoute(builder: (c) => Navigation()));
-        } else {
-          _auth.signOut();
-          Navigator.pop(context);
-          Fluttertoast.showToast(
-              msg: "Admin has blocked your account. \n\nMail here: polskoydm@gmail.com");
-        }
+
       } else {
         _auth.signOut();
         Navigator.pop(context);
@@ -535,42 +528,21 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                 child: Align(
-                  alignment: Alignment(0.0, 0.0),
-                  child: TextField(
-                    controller: emailController,
-                    obscureText: false,
-                    textAlign: TextAlign.start,
-                    maxLines: 1,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w400,
-                      fontStyle: FontStyle.normal,
-                      fontSize: 16,
-                      color: Color(0xff000000),
-                    ),
-                    decoration: InputDecoration(
-                      disabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(4.0),
-                        borderSide: BorderSide(color: Color(0xff9e9e9e), width: 1),
+                  alignment: Alignment.center,
+                  child: Visibility(
+                    visible: !_isEmailSent,
+                    child: TextField(
+                      controller: emailController,
+                      obscureText: false,
+                      textAlign: TextAlign.start,
+                      maxLines: 1,
+                      decoration: InputDecoration(
+                        labelText: "Email",
+                        filled: true,
+                        fillColor: Color(0x00f2f2f3),
+                        isDense: false,
+                        contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(4.0),
-                        borderSide: BorderSide(color: Color(0xff9e9e9e), width: 1),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(4.0),
-                        borderSide: BorderSide(color: Color(0xff9e9e9e), width: 1),
-                      ),
-                      labelText: "Email",
-                      labelStyle: TextStyle(
-                        fontWeight: FontWeight.w400,
-                        fontStyle: FontStyle.normal,
-                        fontSize: 16,
-                        color: Color(0xff9e9e9e),
-                      ),
-                      filled: true,
-                      fillColor: Color(0x00f2f2f3),
-                      isDense: false,
-                      contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                     ),
                   ),
                 ),
@@ -579,43 +551,19 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                 child: Align(
-                  alignment: Alignment(0.0, 0.0),
+                  alignment: Alignment.center,
                   child: _isEmailSent
                       ? Column(
                     children: [
                       Padding(
-                        padding: EdgeInsets.only(bottom: 16), // Add padding here
+                        padding: EdgeInsets.only(bottom: 16),
                         child: TextField(
                           controller: codeController,
                           obscureText: false,
                           textAlign: TextAlign.start,
                           maxLines: 1,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w400,
-                            fontStyle: FontStyle.normal,
-                            fontSize: 16,
-                            color: Color(0xff000000),
-                          ),
                           decoration: InputDecoration(
-                            disabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4.0),
-                              borderSide: BorderSide(color: Color(0xff9e9e9e), width: 1),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4.0),
-                              borderSide: BorderSide(color: Color(0xff9e9e9e), width: 1),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4.0),
-                              borderSide: BorderSide(color: Color(0xff9e9e9e), width: 1),
-                            ),
                             labelText: "Verification Code",
-                            labelStyle: TextStyle(
-                              fontWeight: FontWeight.w400,
-                              fontStyle: FontStyle.normal,
-                              fontSize: 16,
-                              color: Color(0xff9e9e9e),
-                            ),
                             filled: true,
                             fillColor: Color(0x00f2f2f3),
                             isDense: false,
@@ -624,12 +572,9 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                         ),
                       ),
                       Padding(
-                        padding: EdgeInsets.only(top: 16), // Add padding here
+                        padding: EdgeInsets.only(top: 16),
                         child: MaterialButton(
-                          onPressed: () {
-                            // Add your code to handle verification here
-                            verify();
-                          },
+                          onPressed: verify,
                           color: Color(0xffffffff),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
@@ -653,11 +598,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                     ],
                   )
                       : MaterialButton(
-                    onPressed: () {
-                      // Change _isEmailSent to true when the "Send Code" button is pressed.
-
-                      sendEmail();
-                    },
+                    onPressed: sendEmail,
                     color: Color(0xffffffff),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -679,7 +620,6 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                   ),
                 ),
               ),
-
 
             ],
           ),
