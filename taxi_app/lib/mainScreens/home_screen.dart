@@ -1,20 +1,12 @@
-import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:taxi_app/authentication/registration.dart';
-import 'package:taxi_app/mainScreens/bank.dart';
 import 'package:taxi_app/mainScreens/bills.dart';
-import 'package:taxi_app/mainScreens/law_support.dart';
 import 'package:taxi_app/mainScreens/notifications.dart';
 import 'package:taxi_app/mainScreens/rental.dart';
 import 'package:taxi_app/widgets/my_drawer.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-
 import '../authentication/auth_screen.dart';
-import '../global/global.dart';
 
 class MyHomePage extends StatefulWidget {
   @override
@@ -36,13 +28,20 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  // Function to launch the URL
+  void _launchURL(String url) async {
+    if (await launch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      appBar: AppBar(
-        title: Text('Home Page'),
-      ),
 
       body: ListView(
         children: <Widget>[
@@ -65,14 +64,12 @@ Divider(),
 
           ListTile(
             contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Adjust padding as needed
-            leading: Icon(Icons.message),
-            title: Text('Support'),
+            leading: Icon(Icons.help_outline),
+            title: Text('Help'),
             onTap: () {
-              // Add your action for Rental Vehicle
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SendMessagePage()),
-              );
+              // Add your action for Insurance]
+              _launchURL('https://theholylabs.com'); // Replace the URL with your terms and conditions URL
+
             },
           ),
 

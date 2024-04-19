@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
+import 'package:taxi_app/mainScreens/law_support.dart';
 import 'dart:convert';
 import 'bank.dart'; // Import your BankScreen
 
@@ -11,14 +11,6 @@ class ThirdScreen extends StatefulWidget {
 }
 
 
-// Function to launch the URL
-void _launchURL(String url) async {
-  if (await launch(url)) {
-    await launch(url);
-  } else {
-    throw 'Could not launch $url';
-  }
-}
 
 
 
@@ -252,11 +244,14 @@ class _ThirdScreenState extends State<ThirdScreen> {
             Divider(),
             ListTile(
               contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Adjust padding as needed
-              leading: Icon(Icons.help_outline_sharp),
-              title: Text('Help'),
+              leading: Icon(Icons.message),
+              title: Text('Law Support'),
               onTap: () {
-                // Add your action for Insurance]
-                _launchURL('https://theholylabs.com'); // Replace the URL with your terms and conditions URL
+                // Add your action for Rental Vehicle
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SendMessagePage()),
+                );
 
               },
             ),

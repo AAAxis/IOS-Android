@@ -17,11 +17,24 @@ class MySplashScreen extends StatefulWidget {
 class _MySplashScreenState extends State<MySplashScreen> {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance; // Initialize Firebase Auth
 
-  void _navigateToHomeScreen() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (c) => Navigation()),
-    );
+  void _navigateToHomeScreen() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String userStatus = prefs.getString('status') ?? ''; // Retrieve user status from SharedPreferences
+
+    // Navigate to ContractorScreen or SelfEmployedScreen based on status
+    if (userStatus == 'contractor') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => Navigation()),
+      );
+    } else {
+      // Handle other cases, for example, navigate to an error screen or inform the user
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => MyHomePage()), // Replace ErrorScreen with appropriate screen
+      );
+    }
+
   }
 
   void _navigateToAuthScreen() async {

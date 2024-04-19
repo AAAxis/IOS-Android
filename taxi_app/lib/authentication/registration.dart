@@ -1,19 +1,12 @@
-
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taxi_app/global/global.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taxi_app/mainScreens/home_screen.dart';
 import 'package:taxi_app/mainScreens/navigation.dart';
-
-import '../global/global.dart';
-import '../widgets/error_dialog.dart';
 
 class MultiStepRegistrationScreen extends StatefulWidget {
   @override
@@ -28,16 +21,10 @@ class _MultiStepRegistrationScreenState
   TextEditingController _emailController =  TextEditingController();
   TextEditingController _nameController = TextEditingController();
   TextEditingController _phoneController = TextEditingController();
-  TextEditingController codeController = TextEditingController();
   String? _selectedEmploymentType;
-  String? _selectedAccountType;
-
   String? _selectedCity = "Tel Aviv";
-  String? _selectedProviders;
 
   int _currentPage = 0;
-  bool _isEmailSent = false;
-  String? verificationCode;
 
 
   @override
@@ -51,15 +38,12 @@ class _MultiStepRegistrationScreenState
   }
 
 
-
   Future<void> _sendRegistrationData() async {
     final email = _emailController.text.trim();
     final name = _nameController.text.trim();
     final phone = _phoneController.text.trim();
     final employmentType = _selectedEmploymentType;
     final city = _selectedCity;
-    final accountType = _selectedAccountType;
-    final providers = _selectedProviders;
 
     final data = {
       'email': email,
@@ -67,9 +51,9 @@ class _MultiStepRegistrationScreenState
       'phone': phone,
       'employmentType': employmentType,
       'city': city,
-      'accountType': accountType,
-      'providers': providers,
     };
+
+    print('Sending data: $data');
 
     try {
       final response = await http.post(
@@ -78,119 +62,23 @@ class _MultiStepRegistrationScreenState
         headers: {'Content-Type': 'application/json'},
       );
 
-      if (response.statusCode == 200) {
-        // Handle success
+      print('Response: ${response.body}');
 
-        // Update status to "approved" in Firebase
+      if (response.statusCode == 200) {
+        // Update status and city in Firestore
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-          await userDocRef.update({'status': 'approved'});
+          await userDocRef.update({'status': _selectedEmploymentType});
         }
-
-        // Update shared preferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('status', 'approved');
       } else {
         // Handle failure
+        throw Exception('Failed to send registration data. Status code: ${response.statusCode}');
       }
     } catch (e) {
       // Handle error
-    }
-  }
-
-  Future<void> sendSMS() async {
-    final phone = _phoneController.text.trim();
-
-    final response = await http.get(
-      Uri.parse(
-          'https://polskoydm.pythonanywhere.com/global_sms?phone=$phone'),
-    );
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      setState(() {
-        _isEmailSent = true;
-        verificationCode = data['verification_code'];
-      });
-    }
-
-  }
-
-
-  Future<void> sendEmail() async {
-    final email = _emailController.text.trim();
-
-    if (email.isEmpty) {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text('Invalid Email'),
-            content: Text('Please enter a valid email address.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-      return;
-    }
-
-    try {
-      final response = await http.get(
-        Uri.parse(
-            'https://polskoydm.pythonanywhere.com/global_auth?email=$email'),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() {
-          _isEmailSent = true;
-          verificationCode = data['verification_code'];
-        });
-      } else {
-        showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: Text('Failed to Send Email'),
-              content: Text('Unable to send email. Please try again later.'),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: Text('OK'),
-                ),
-              ],
-            );
-          },
-        );
-      }
-    } catch (e) {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text('Error'),
-            content: Text('An error occurred while sending the email: $e'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
+      print('Error: $e');
+      throw Exception('Failed to send registration data: $e');
     }
   }
 
@@ -198,7 +86,7 @@ class _MultiStepRegistrationScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Multi-Step Application'),
+        title: Text('Registration'),
       ),
       body: PageView(
         controller: _pageController,
@@ -211,9 +99,6 @@ class _MultiStepRegistrationScreenState
         children: [
           _buildFirstPage(),
           _buildSecondPage(),
-          _buildThirdPage(),
-          _buildFourthPage(),
-          _buildSMSVerificationPage(), // Add SMS verification page
 
         ],
       ),
@@ -236,11 +121,19 @@ class _MultiStepRegistrationScreenState
       });
     }
 
+    void updateAddress(String? newAddress) {
+      if (newAddress != null) {
+        setState(() {
+          sharedPreferences!.setString("address", newAddress);
+        });
+      }
+    }
     void updatePhone(String newPhone) {
       setState(() {
         sharedPreferences!.setString("phone", newPhone);
       });
     }
+
 
     return _buildPage(
       child: Column(
@@ -265,22 +158,21 @@ class _MultiStepRegistrationScreenState
             },
             decoration: InputDecoration(
               labelText: 'Full Name',
-              prefixIcon: Icon(Icons.person), // Add person icon
+              prefixIcon: Icon(Icons.person),
             ),
           ),
           SizedBox(height: 20.0),
           TextField(
             controller: _phoneController,
             onTap: () {
-              _phoneController.clear(); // Clear the text field when tapped
+              _phoneController.clear();
             },
             decoration: InputDecoration(
               labelText: 'Phone',
-              prefixIcon: Icon(Icons.phone), // Add phone icon
+              prefixIcon: Icon(Icons.phone),
             ),
           ),
           SizedBox(height: 20.0),
-
           Center(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -289,17 +181,17 @@ class _MultiStepRegistrationScreenState
                   'Delivery City',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-                SizedBox(width: 10), // Adjust spacing between the label and the DropdownButton if needed
+                SizedBox(width: 10),
                 DropdownButton<String>(
                   value: _selectedCity,
                   onChanged: (String? newValue) {
                     setState(() {
-                      _selectedCity = newValue!;
+                      _selectedCity = newValue;
                     });
                   },
                   items: [
                     'Haifa',
-                    'Tel Aviv', // Default value set to "Tel Aviv"
+                    'Tel Aviv',
                     'Bat Yam',
                     'Holon',
                     'Ramat Gan',
@@ -311,10 +203,10 @@ class _MultiStepRegistrationScreenState
                     );
                   }).toList(),
                 ),
+
               ],
             ),
           ),
-
           SizedBox(height: 20.0),
           ElevatedButton(
             onPressed: () async {
@@ -342,16 +234,13 @@ class _MultiStepRegistrationScreenState
               if (validatePhone(_phoneController.text)) {
                 final newPhone = _phoneController.text;
                 final newName = _nameController.text;
-                final user =
-                    FirebaseAuth.instance.currentUser;
+                final user = FirebaseAuth.instance.currentUser;
                 if (user != null) {
-                  final userDocRef = FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(user.uid);
-                  await userDocRef.update({'phone': newPhone});
+                  final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+                  await userDocRef.update({'phone': newPhone, 'name': newName, 'address': _selectedCity});
                   updatePhone(newPhone);
-                  await userDocRef.update({'name': newName});
                   updateName(newName);
+                  updateAddress(_selectedCity);
                 }
 
                 // Proceed to the next step
@@ -403,7 +292,7 @@ class _MultiStepRegistrationScreenState
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               Radio(
-                value: 'Contractor',
+                value: 'contractor',
                 groupValue: _selectedEmploymentType,
                 onChanged: (value) {
                   setState(() {
@@ -415,7 +304,7 @@ class _MultiStepRegistrationScreenState
               Text('Contractor'),
               SizedBox(width: 20),
               Radio(
-                value: 'Self-employed',
+                value: 'self-employed',
                 groupValue: _selectedEmploymentType,
                 onChanged: (value) {
                   setState(() {
@@ -445,284 +334,37 @@ class _MultiStepRegistrationScreenState
             ),
           ),
           SizedBox(height: 20),
-
           ElevatedButton(
-            onPressed: _isSelectionMade2 ? () {
-              // Proceed to the next step
-              _pageController.nextPage(
-                duration: Duration(milliseconds: 300),
-                curve: Curves.ease,
-              );
-            } : null, // Disable button if selection is not made
-            child: Text('Next'),
-          ),
-        ],
-      ),
-    );
-  }
+            onPressed: _isSelectionMade2
+                ? () async {
+              if (_selectedEmploymentType != null) {
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                await prefs.setString('status', _selectedEmploymentType!); // Add ! to assert non-null
 
-  bool isSelectionMade3 = false; // Track whether a selection is made
-
-  Widget _buildThirdPage() {
-
-    return _buildPage(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Text(
-            'Account Type',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Radio(
-                value: 'Car',
-                groupValue: _selectedAccountType,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedAccountType = value.toString();
-                    isSelectionMade3 = true; // Enable the button
-                  });
-                },
-              ),
-              Text('Car'),
-              SizedBox(width: 20),
-              Radio(
-                value: 'Motorcycle',
-                groupValue: _selectedAccountType,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedAccountType = value.toString();
-                    isSelectionMade3 = true; // Enable the button
-                  });
-                },
-              ),
-              Text('Motorcycle'),
-              SizedBox(width: 20),
-              Radio(
-                value: 'Bike',
-                groupValue: _selectedAccountType,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedAccountType = value.toString();
-                    isSelectionMade3 = true; // Enable the button
-                  });
-                },
-              ),
-              Text('Bike'),
-            ],
-          ),
-          SizedBox(height: 20),
-          Card(
-            child: ListTile(
-              leading: Icon(Icons.directions_car),
-              title: Text('Car'),
-              subtitle: Text('Choose this option if you want to register a car account.'),
-            ),
-          ),
-          SizedBox(height: 10),
-          Card(
-            child: ListTile(
-              leading: Icon(Icons.motorcycle),
-              title: Text('Motorcycle'),
-              subtitle: Text('Choose this option if you want to register a motorcycle account.'),
-            ),
-          ),
-          SizedBox(height: 10),
-          Card(
-            child: ListTile(
-              leading: Icon(Icons.directions_bike),
-              title: Text('Bike'),
-              subtitle: Text('Choose this option if you want to register a bike account.'),
-            ),
-          ),
-          SizedBox(height: 20),
-
-          ElevatedButton(
-            onPressed: isSelectionMade3
-                ? () {
-              // Proceed to the next step
-              _pageController.nextPage(
-                duration: Duration(milliseconds: 300),
-                curve: Curves.ease,
-              );
-            }
-                : null, // Disable the button if no selection is made
-            child: Text('Next'),
-          ),
-        ],
-      ),
-    );
-  }
-
-
-  bool _isSelectionMade() {
-    return _selectedProviders != null;
-  }
-
-  Widget _buildFourthPage() {
-    return _buildPage(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Text(
-            'Select Service',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Radio(
-                value: 'Ten Bis',
-                groupValue: _selectedProviders,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedProviders = value.toString();
-                  });
-                },
-              ),
-              Text('Ten Bis'),
-              SizedBox(width: 20),
-              Radio(
-                value: 'Yango Deli',
-                groupValue: _selectedProviders,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedProviders = value.toString();
-                  });
-                },
-              ),
-              Text('Yango'),
-              SizedBox(width: 20),
-              Radio(
-                value: 'Japanika',
-                groupValue: _selectedProviders,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedProviders = value.toString();
-                  });
-                },
-              ),
-              Text('Japanika'),
-            ],
-          ),
-          SizedBox(height: 20),
-          Card(
-            child: ListTile(
-              leading: Icon(Icons.hardware),
-              title: Text('Yango'),
-              subtitle:
-              Text('40 hours a week, Not Limited'),
-            ),
-          ),
-          SizedBox(height: 10),
-          Card(
-            child: ListTile(
-              leading: Icon(Icons.lightbulb_outline),
-              title: Text('Japanika'),
-              subtitle: Text('20 hours a week, flexible'),
-            ),
-          ),
-
-          SizedBox(height: 10),
-          Card(
-            child: ListTile(
-              leading: Icon(Icons.lightbulb_outline),
-              title: Text('Ten Bis'),
-              subtitle: Text('20 hours a week, flexible'),
-            ),
-          ),
-
-
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _isSelectionMade()
-                ? () {
-              sendEmail();
-              // Proceed to the next step or perform any action
-              _pageController.nextPage(
-                duration: Duration(milliseconds: 300),
-                curve: Curves.ease,
-              );
-            }
-                : null, // Disable the button if no selection is made
-            child: Text('Next'),
-          ),
-
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSMSVerificationPage() {
-    return _buildPage(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Text(
-            'We sent a verification code to your phone',
-            style: TextStyle(fontWeight: FontWeight.normal),
-          ),
-          Image.asset(
-            "images/promotion.png", // Replace 'sms_verification_image.png' with your image asset
-            height: 220,
-            width: 250,
-          ),
-// Inside your build method or wherever appropriate, use the TextField widget
-          TextField(
-            controller: codeController, // Assign the controller here
-            decoration: InputDecoration(
-              labelText: 'Enter 6-digit Code',
-            ),
-          ),
-          SizedBox(height: 10),
-          Row(
-            children: [
-              Text(
-                'Resend verification code via ',
-                style: TextStyle(
-                  fontWeight: FontWeight.normal,
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  sendSMS(); // Call the sendEmail function when the button is pressed
-                },
-                child: Text(
-                  'SMS',
-                  style: TextStyle(
-                    fontWeight: FontWeight.normal,
-                    color: Colors.blue,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              OutlinedButton(
-                onPressed: () {
-                  _sendRegistrationData();
-                  // Implement logic to verify the entered code
-                  Navigator.pop(context);
+                if (_selectedEmploymentType == 'contractor') {
+                  // Navigate to the Contractor page
                   Navigator.push(
-                      context, MaterialPageRoute(builder: (c) => Navigation()));
-
-                },
-                child: Text('Submit'),
-              ),
-            ],
+                    context,
+                    MaterialPageRoute(builder: (context) => Navigation()),
+                  );
+                } else {
+                  // Navigate to the Navigation page
+                  _sendRegistrationData();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => MyHomePage()),
+                  );
+                }
+              }
+            }
+                : null, // Disable button if selection is not made
+            child: Text('Next'),
           ),
+
         ],
       ),
     );
   }
-
 
 
   // Your existing helper methods...
@@ -733,11 +375,6 @@ class _MultiStepRegistrationScreenState
       child: child,
     );
   }
-
-
-
-
-
 
 
 

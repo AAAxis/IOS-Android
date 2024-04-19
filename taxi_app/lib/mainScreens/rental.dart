@@ -81,7 +81,7 @@ class _RentalScreenState extends State<RentalScreen> {
                               MaterialPageRoute(builder: (context) => DriverLicenseScreen()),
                             );
                           },
-                          child: Text('Add Document'),
+                          child: Text('Start Application'),
                         ),
                         SizedBox(height: 16),
                       ],

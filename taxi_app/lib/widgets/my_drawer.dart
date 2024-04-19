@@ -14,6 +14,7 @@ class MyDrawerPage extends StatefulWidget {
 
 class _MyDrawerPageState extends State<MyDrawerPage> {
   final TextEditingController nameController = TextEditingController();
+  final TextEditingController addressController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>(); // Initialize formKey
 
@@ -41,6 +42,13 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
   void updateName(String newName) {
     setState(() {
       sharedPreferences!.setString("name", newName);
+    });
+  }
+
+
+  void updateAddress(String newAddress) {
+    setState(() {
+      sharedPreferences!.setString("address", newAddress);
     });
   }
 
@@ -75,6 +83,13 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
             leading: const Icon(Icons.email, color: Colors.black),
             title: Text(
               FirebaseAuth.instance.currentUser?.email ?? "No Email",
+              style: const TextStyle(color: Colors.black),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.work, color: Colors.black),
+            title: Text(
+              sharedPreferences!.getString("status") ?? "Dissabled",
               style: const TextStyle(color: Colors.black),
             ),
           ),
@@ -136,6 +151,65 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
               ),
             ),
           ),
+          ListTile(
+            leading: const Icon(Icons.location_city, color: Colors.black),
+            title: GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: const Text("Edit Delivery Area"),
+                      content: Form(
+                        key: formKey,
+                        child: TextFormField(
+                          controller: addressController,
+                          decoration:
+                          const InputDecoration(labelText: "Address"),
+                          validator: (value) {
+                            if (value?.isEmpty ?? true) {
+                              return 'Please enter your City';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () async {
+                            if (formKey.currentState?.validate() ?? false) {
+                              final newAddress = addressController.text;
+                              final user =
+                                  FirebaseAuth.instance.currentUser;
+                              if (user != null) {
+                                final userDocRef = FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(user.uid);
+                                await userDocRef.update({'address': newAddress});
+                                updateAddress(newAddress);
+                              }
+                              Navigator.pop(context);
+                            }
+                          },
+                          child: const Text("Save"),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    sharedPreferences!.getString("address") ?? "No Address",
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           ListTile(
             leading: const Icon(Icons.phone, color: Colors.black),
             title: GestureDetector(

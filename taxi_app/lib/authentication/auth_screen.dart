@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:taxi_app/authentication/registration.dart';
+import 'package:taxi_app/mainScreens/home_screen.dart';
 import 'package:taxi_app/mainScreens/navigation.dart';
 import 'package:the_apple_sign_in/the_apple_sign_in.dart';
 import 'package:http/http.dart' as http;
@@ -365,34 +367,51 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
     }
   }
 
-  Future readDataAndSetDataLocally(User currentUser) async {
+  Future<void> readDataAndSetDataLocally(User currentUser) async {
     await FirebaseFirestore.instance
         .collection("users")
         .doc(currentUser.uid)
         .get()
         .then((snapshot) async {
       if (snapshot.exists) {
+        String status = snapshot.data()!["status"];
 
-          await sharedPreferences!.setString("uid", currentUser.uid);
-          await sharedPreferences!.setString(
-              "email", snapshot.data()!["email"]);
-          await sharedPreferences!.setString("name", snapshot.data()!["name"]);
-          await sharedPreferences!.setString(
-              "photoUrl", snapshot.data()!["userAvatarUrl"]);
-          await sharedPreferences!.setString(
-              "phone", snapshot.data()!["phone"]);
-          await sharedPreferences!.setString(
-              "status", snapshot.data()!["status"]);
+        await sharedPreferences!.setString("uid", currentUser.uid);
+        await sharedPreferences!.setString("email", snapshot.data()!["email"]);
+        await sharedPreferences!.setString("name", snapshot.data()!["name"]);
+        await sharedPreferences!.setString("photoUrl", snapshot.data()!["userAvatarUrl"]);
+        await sharedPreferences!.setString("phone", snapshot.data()!["phone"]);
+        await sharedPreferences!.setString("status", status);
+        await sharedPreferences!.setString("address", snapshot.data()!["address"]);
 
-          Navigator.pop(context);
-          Navigator.push(
-              context, MaterialPageRoute(builder: (c) => Navigation()));
+        Navigator.pop(context);
 
+        // Navigate based on status
+        switch (status) {
+          case "disabled":
+            Navigator.push(context, MaterialPageRoute(builder: (c) => MultiStepRegistrationScreen()));
+            break;
+          case "self-employed":
+            Navigator.push(context, MaterialPageRoute(builder: (c) => MyHomePage()));
+            break;
+          case "contractor":
+            Navigator.push(context, MaterialPageRoute(builder: (c) => Navigation()));
+            break;
+          default:
+            showDialog(
+              context: context,
+              builder: (c) {
+                return ErrorDialog(
+                  message: "Unknown status.",
+                );
+              },
+            );
+            break;
+        }
       } else {
         _auth.signOut();
         Navigator.pop(context);
-        Navigator.push(context,
-            MaterialPageRoute(builder: (c) => const MergedLoginScreen()));
+        Navigator.push(context, MaterialPageRoute(builder: (c) => const MergedLoginScreen()));
 
         showDialog(
           context: context,
