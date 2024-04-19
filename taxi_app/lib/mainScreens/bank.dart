@@ -129,10 +129,10 @@ class AddNewBankInfo extends StatelessWidget {
   void _saveBankInfo(BuildContext context) async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? userEmail = prefs.getString('email');
+      String? uid = prefs.getString('uid');
 
-      if (userEmail == null) {
-        print('User email not found in shared preferences.');
+      if (uid == null) {
+        print('User UID not found in shared preferences.');
         return;
       }
 
@@ -140,13 +140,15 @@ class AddNewBankInfo extends StatelessWidget {
       String transitNumber = _transitNumberController.text;
       String branch = _branchController.text;
 
-      // Save bank info to Firebase
-      await FirebaseFirestore.instance.collection('banks').add({
-        'userEmail': userEmail,
+      // Reference to the user's document
+      DocumentReference userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+
+      // Update user's document with bank information
+      await userRef.set({
         'bankName': bankName,
         'transitNumber': transitNumber,
         'branch': branch,
-      });
+      }, SetOptions(merge: true)); // Use merge to only update provided fields
 
       // Clear text fields after saving
       _bankNameController.clear();
@@ -155,7 +157,7 @@ class AddNewBankInfo extends StatelessWidget {
 
       // Show success message or navigate to another screen
       // For now, let's print a success message
-      print('Bank information saved to Firebase');
+      print('Bank information saved to user document in Firebase');
     } catch (e) {
       print('Error saving bank information: $e');
       // Handle error as needed

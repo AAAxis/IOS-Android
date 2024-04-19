@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taxi_app/authentication/registration.dart';
 import 'package:taxi_app/mainScreens/bank.dart';
 import 'package:taxi_app/mainScreens/bills.dart';
+import 'package:taxi_app/mainScreens/law_support.dart';
 import 'package:taxi_app/mainScreens/notifications.dart';
 import 'package:taxi_app/mainScreens/rental.dart';
 import 'package:taxi_app/widgets/my_drawer.dart';
@@ -58,7 +59,25 @@ class _MyHomePageState extends State<MyHomePage> {
             },
           ),
 
+
+
 Divider(),
+
+          ListTile(
+            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Adjust padding as needed
+            leading: Icon(Icons.message),
+            title: Text('Support'),
+            onTap: () {
+              // Add your action for Rental Vehicle
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SendMessagePage()),
+              );
+            },
+          ),
+
+
+          Divider(),
           ListTile(
             contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Adjust padding as needed
             leading: Icon(Icons.receipt),
