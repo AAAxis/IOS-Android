@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../global/global.dart';
+
 void main() {
   runApp(MaterialApp(
     home: ScheduleScreen(),
@@ -35,140 +37,128 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ],
         ),
       ),
-      body: ScheduleList(isSaved: isSaved),
+      body: isSaved ? SavedScheduleList() : SlotList(), // Display SavedScheduleList or SlotList based on isSaved value
     );
   }
 }
 
-class ScheduleList extends StatelessWidget {
-  final bool isSaved;
-
-  ScheduleList({required this.isSaved});
-
+class SlotList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return isSaved ? SavedScheduleList() : UnsavedScheduleList();
-  }
-}
-
-class UnsavedScheduleList extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: 6,
-      itemBuilder: (context, index) {
-        return ScheduleRow(day: index);
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('schedules').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        List<DocumentSnapshot> documents = snapshot.data!.docs;
+        return ListView.builder(
+          itemCount: documents.length,
+          itemBuilder: (context, index) {
+            return SlotRow(data: documents[index].data() as Map<String, dynamic>);
+          },
+        );
       },
     );
   }
 }
 
-class SavedScheduleList extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      String email = user.email ?? "";
-      return StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('schedules')
-            .where('email', isEqualTo: email)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          List<DocumentSnapshot> documents = snapshot.data!.docs;
-          return ListView.builder(
-            itemCount: documents.length,
-            itemBuilder: (context, index) {
-              return SavedScheduleRow(data: documents[index].data() as Map<String, dynamic>, docId: documents[index].id);
-            },
-          );
-        },
-      );
-    } else {
-      return Center(child: Text('User not authenticated'));
-    }
-  }
-}
+class SlotRow extends StatelessWidget {
+  final Map<String, dynamic> data;
 
-class ScheduleRow extends StatelessWidget {
-  final int day;
-
-  ScheduleRow({required this.day});
+  SlotRow({required this.data});
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(_getDayName(day)),
+      title: Text(data['day']),
       subtitle: Row(
         children: [
           Expanded(
-            child: Text('Clock In: 08:00 AM'),
+            child: Text('Clock In: ${data['clockIn']}'),
           ),
           Expanded(
-            child: Text('Clock Out: 05:00 PM'),
+            child: Text('Clock Out: ${data['clockOut']}'),
           ),
           IconButton(
-            icon: Icon(Icons.send),
+            icon: Icon(Icons.archive),
             onPressed: () {
-              _saveSchedule(context, day);
+              _moveToSaved(context, data);
             },
           ),
         ],
       ),
-
     );
-
   }
 
-  String _getDayName(int day) {
-    switch (day) {
-      case 0:
-        return 'Monday';
-      case 1:
-        return 'Tuesday';
-      case 2:
-        return 'Wednesday';
-      case 3:
-        return 'Thursday';
-      case 4:
-        return 'Friday';
-      case 5:
-        return 'Saturday';
-      default:
-        return '';
-    }
-  }
-
-  void _saveSchedule(BuildContext context, int day) async {
+  void _moveToSaved(BuildContext context, Map<String, dynamic> data) async {
     try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        String email = user.email ?? "";
-        Timestamp timestamp = Timestamp.now();
-        await FirebaseFirestore.instance.collection('schedules').add({
-          'email': email,
-          'day': _getDayName(day),
-          'clockIn': '08:00 AM',
-          'clockOut': '05:00 PM',
-          'timestamp': timestamp,
-        });
+      // Retrieve UID from preferences
+      String? uid =  sharedPreferences!.getString("uid") ?? "None";// Replace with your method to get UID from preferences
+
+      if (uid != null) {
+        // Construct the path to the subcollection
+        String subcollectionPath = 'users/$uid/slot';
+
+        // Add the schedule to the subcollection
+        await FirebaseFirestore.instance.collection(subcollectionPath).add(data);
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Schedule saved to Firebase')),
+          SnackBar(content: Text('Schedule moved to Saved Slots')),
         );
       } else {
+        // Handle case where UID is null
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('User not authenticated')),
+          SnackBar(content: Text('UID is null, unable to save schedule')),
         );
       }
     } catch (e) {
-      print('Error saving schedule: $e');
+      print('Error moving schedule: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error moving schedule')),
+      );
     }
+  }
+
+}
+
+class SavedScheduleList extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String>(
+      future: Future<String>.value(sharedPreferences!.getString("uid") ?? "None"), // Convert String to Future<String>
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError || snapshot.data == "None") {
+          return Center(child: Text('Error: Unable to fetch UID'));
+        }
+        String uid = snapshot.data!;
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('users/$uid/slot').snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+            List<DocumentSnapshot> documents = snapshot.data!.docs;
+            return ListView.builder(
+              itemCount: documents.length,
+              itemBuilder: (context, index) {
+                return SavedScheduleRow(data: documents[index].data() as Map<String, dynamic>, docId: documents[index].id);
+              },
+            );
+          },
+        );
+      },
+    );
   }
 }
 
@@ -203,12 +193,31 @@ class SavedScheduleRow extends StatelessWidget {
 
   void _deleteSchedule(BuildContext context, String docId) async {
     try {
-      await FirebaseFirestore.instance.collection('schedules').doc(docId).delete();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Schedule deleted')),
-      );
+      // Retrieve UID from preferences
+      String? uid = sharedPreferences!.getString("uid");
+
+      if (uid != null) {
+        // Construct the path to the document in the subcollection
+        String documentPath = 'users/$uid/slot/$docId';
+
+        // Delete the document
+        await FirebaseFirestore.instance.doc(documentPath).delete();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Schedule deleted')),
+        );
+      } else {
+        // Handle case where UID is null
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('UID is null, unable to delete schedule')),
+        );
+      }
     } catch (e) {
       print('Error deleting schedule: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting schedule')),
+      );
     }
   }
+
 }

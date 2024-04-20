@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore package
-import 'package:intl/intl.dart'; // Import intl package for date formatting
-import 'package:awesome_notifications/awesome_notifications.dart'; // Import Awesome Notifications package
-import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences package
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({Key? key}) : super(key: key);
@@ -12,15 +12,15 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
-  late Stream<QuerySnapshot> _notificationsStream; // Define a stream of notifications
-  Set<String> _readNotifications = {}; // Set to store IDs of read notifications
+  late Stream<QuerySnapshot> _notificationsStream;
+  Set<String> _readNotifications = {};
 
   @override
   void initState() {
     super.initState();
     _requestNotificationPermission();
-    _initializeNotificationsStream(); // Initialize the stream// Request permission for notifications
-    _loadReadNotifications(); // Load read notifications from shared preferences
+    _initializeNotificationsStream();
+    _loadReadNotifications();
   }
 
   void _initializeNotificationsStream() {
@@ -32,24 +32,27 @@ class _NotificationScreenState extends State<NotificationScreen> {
     _notificationsStream.listen((snapshot) {
       snapshot.docChanges.forEach((change) {
         if (change.type == DocumentChangeType.added) {
-          final notificationData = change.doc.data() as Map<String, dynamic>;
-          final id = change.doc.id;
-          final title = notificationData['title'] ?? '';
-          final body = notificationData['body'] ?? '';
-          final time = notificationData['time']?.toDate() ?? DateTime.now();
-
-          // Check if the notification time is in the future
-          if (time.isAfter(DateTime.now())) {
-            // Schedule a notification only if it's in the future
-            _scheduleNotification(id, title, body, time);
-          } else {
-            // If the notification is in the past, mark it as read
-            setState(() {
-              _readNotifications.add(id);
-            });
-          }
+          _handleNotificationChange(change);
         }
       });
+    });
+  }
+
+  void _handleNotificationChange(DocumentChange change) {
+    final notificationData = change.doc.data() as Map<String, dynamic>;
+    final id = change.doc.id;
+    final title = notificationData['title'] ?? '';
+    final body = notificationData['body'] ?? '';
+    final time = notificationData['time']?.toDate() ?? DateTime.now();
+
+    // Schedule a notification immediately if it's in the future
+    if (time.isAfter(DateTime.now())) {
+      _scheduleNotification(id, title, body, time);
+    }
+
+    // Display notification in the app
+    setState(() {
+      _readNotifications.add(id);
     });
   }
 
@@ -65,11 +68,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
     });
   }
 
-  Future<void> _saveReadNotifications() async {
-    final prefs = await SharedPreferences.getInstance();
-    prefs.setStringList('readNotifications', _readNotifications.toList());
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -77,42 +75,42 @@ class _NotificationScreenState extends State<NotificationScreen> {
         title: Text('Notifications'),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _notificationsStream, // Use the stream
+        stream: _notificationsStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else {
-            final documents = snapshot.data!.docs; // Extract documents from snapshot
+            final documents = snapshot.data!.docs;
             final filteredDocuments = documents.where((doc) {
               final notificationData = doc.data() as Map<String, dynamic>;
               final time = notificationData['time']?.toDate() ?? DateTime.now();
-              return time.isBefore(DateTime.now()); // Filter out future notifications
+              return time.isBefore(DateTime.now());
             }).toList();
             return ListView.builder(
               itemCount: filteredDocuments.length,
               itemBuilder: (context, index) {
-                final notificationData = filteredDocuments[index].data() as Map<String, dynamic>; // Explicitly cast notification to Map<String, dynamic>
-                final id = filteredDocuments[index].id; // Extract notification id
-                final title = notificationData['title'] ?? ''; // Extract title
-                final body = notificationData['body'] ?? ''; // Extract body
-                final time = notificationData['time']?.toDate() ?? DateTime.now(); // Convert Firebase Timestamp to DateTime
+                final notificationData = filteredDocuments[index].data() as Map<String, dynamic>;
+                final id = filteredDocuments[index].id;
+                final title = notificationData['title'] ?? '';
+                final body = notificationData['body'] ?? '';
+                final time = notificationData['time']?.toDate() ?? DateTime.now();
 
-                final formattedTime = DateFormat('MMM dd, yyyy hh:mm a').format(time); // Format time to display without seconds
-                final isRead = _readNotifications.contains(id); // Check if notification is read
+                final formattedTime = DateFormat('MMM dd, yyyy hh:mm a').format(time);
+                final isRead = _readNotifications.contains(id);
 
                 return ListTile(
                   leading: Icon(
-                    isRead ? Icons.mail_outline : Icons.mail, // Use different icon based on read status
+                    isRead ? Icons.mail_outline : Icons.mail,
                     color: isRead ? Colors.grey : Colors.blue,
                   ),
                   title: Text(title),
-                  subtitle: Text(formattedTime), // Display formatted time (date and time without seconds)
+                  subtitle: Text(formattedTime),
                   onTap: () {
                     _showNotificationDialog(body);
                     setState(() {
-                      _toggleReadStatus(id); // Toggle read status locally
+
                     });
                   },
                 );
@@ -146,19 +144,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  void _toggleReadStatus(String id) {
-    if (_readNotifications.contains(id)) {
-      _readNotifications.remove(id); // Mark as unread
-    } else {
-      _readNotifications.add(id); // Mark as read
-    }
-    _saveReadNotifications(); // Save read notifications to shared preferences
-  }
 
   void _scheduleNotification(String id, String title, String body, DateTime notificationTime) async {
     final now = DateTime.now();
     if (notificationTime.isAfter(now)) {
-      final notificationId = _generateNotificationId(id); // Generate a valid notification ID
+      final notificationId = _generateNotificationId(id);
       await AwesomeNotifications().createNotification(
         content: NotificationContent(
           id: notificationId,
@@ -176,11 +166,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   int _generateNotificationId(String id) {
-    // Generate a unique integer ID based on the string ID
     final uniqueId = id.hashCode.abs();
     return uniqueId;
   }
-
 }
 
 class MyApp extends StatelessWidget {
@@ -208,4 +196,3 @@ void main() async {
   );
   runApp(MyApp());
 }
-

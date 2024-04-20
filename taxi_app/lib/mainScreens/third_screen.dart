@@ -1,261 +1,254 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:taxi_app/mainScreens/bank.dart';
 import 'package:taxi_app/mainScreens/law_support.dart';
-import 'dart:convert';
-import 'bank.dart'; // Import your BankScreen
+import 'package:intl/intl.dart';
+
+
+class TransactionDialog extends StatelessWidget {
+  final List<Map<String, dynamic>> transactions;
+
+  TransactionDialog({required this.transactions});
+
+  @override
+  Widget build(BuildContext context) {
+    // Inside the build method of your AlertDialog widget
+    return AlertDialog(
+      title: Text('Transactions'),
+      content: SingleChildScrollView(
+        scrollDirection: Axis.horizontal, // Allow horizontal scrolling
+        child: SingleChildScrollView(
+          child: DataTable(
+            columns: [
+              DataColumn(label: Text('Provider')),
+              DataColumn(label: Text('Amount')),
+              DataColumn(label: Text('Date')), // New column
+              DataColumn(label: Text('Deliveries Complated')),
+            ],
+            rows: transactions.map((transaction) {
+              // Format the timestamp into a readable date format
+              String formattedDate = DateFormat('dd MMM').format(transaction['timestamp'].toDate());
+
+
+              return DataRow(cells: [
+                DataCell(Text(transaction['provider'].toString())),
+                DataCell(Text('\$${transaction['money']}')),
+                DataCell(Text(formattedDate)),
+                // Modified line to include the dollar sign
+                DataCell(Text(transaction['deliveryCompleted'].toString())), // New cell for the provider column
+              ]);
+            }).toList(),
+          ),
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          child: Text('Close'),
+        ),
+      ],
+    );
+  }
+
+}
 
 class ThirdScreen extends StatefulWidget {
+
+
   @override
   _ThirdScreenState createState() => _ThirdScreenState();
 }
 
 
 
-
-
-
 class _ThirdScreenState extends State<ThirdScreen> {
-  int _money = 0;
+  String buttonText = 'Balance'; // Default text for balance button
+  String ratingButtonText = 'Rating'; // Default text for rating button
+
+  List<Map<String, dynamic>> _transactions = [
+    {'money': '1996', 'rating': '88'}
+  ]; // Sample transactions data
 
   @override
   void initState() {
     super.initState();
-    _fetchEarnings();
-  }
-
-  Future<void> _fetchEarnings() async {
-    try {
-      final apiUrl = 'https://polskoydm.pythonanywhere.com/driver_info';
-      // Assuming you have a fixed email for testing
-      final email = FirebaseAuth.instance.currentUser?.email ?? "No Email";
-
-      final Uri uri = Uri.parse('$apiUrl?email=$email'); // Create the URI
-
-      final response = await http.get(uri);
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        final money = data['money'];
-
-        setState(() {
-          _money = money;
-        });
-      } else {
-        throw Exception('Failed to load driver info');
-      }
-    } catch (e) {
-      print('Error fetching user info: $e');
+    // Fetch transactions when the screen is initialized
+    if (_transactions.isNotEmpty) {
+      int balance = int.parse(_transactions.last['money']);
+      buttonText = 'Balance - $balance';
+      int rating = int.parse(_transactions.last['rating']);
+      ratingButtonText = 'Rating - $rating';
+    } else {
+      buttonText = 'No transactions available';
+      ratingButtonText = 'No rating available';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.5),
-            spreadRadius: 5,
-            blurRadius: 7,
-            offset: Offset(0, 3),
-          ),
-        ],
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Balance'),
       ),
-      padding: EdgeInsets.all(20.0),
-      child: Center(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Credit Card Placeholder
             Container(
-              height: 160.0, // Double the height
+              padding: EdgeInsets.all(16.0),
               decoration: BoxDecoration(
-                color: Colors.blueAccent, // Change color as needed
-                borderRadius: BorderRadius.circular(20.0), // Increase border radius for a rounded card
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.5),
-                    spreadRadius: 3,
-                    blurRadius: 5,
-                    offset: Offset(0, 2),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(16.0),
+                color: Colors.black87, // Set card color to black
               ),
-              padding: EdgeInsets.all(20.0), // Increase padding for more space
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'My Balance',
-                        style: TextStyle(
-                          fontSize: 20, // Increase font size for the title
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      // Icon for Mastercard
+                      Row(
+                        children: [
+                          // Icon for Mastercard
+                          Icon(
+                            Icons.credit_card,
+                            color: Colors.white, // Mastercard's color
+                            size: 30,
+                          ),
+                          SizedBox(width: 10), // Add some space between the icon and text
+                          // Text for the balance amount
+                          Text(
+                            '\$${_transactions.last['money']}', // Display balance amount
+                            style: TextStyle(
+                              color: Colors.white, // Text color
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ],
                       ),
 
-                      SizedBox(height: 50), // Add more space between title and balance
-                      Text(
-                        '\$$_money',
-                        style: TextStyle(
-                          fontSize: 26, // Increase font size for the balance
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+
                     ],
                   ),
-                  Icon(
-                    Icons.account_balance_wallet,
-                    color: Colors.white,
-                    size: 60, // Increase icon size
-                  ),
-                ],
-              ),
-            ),
-
-            SizedBox(height: 20),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10.0),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.5),
-                    spreadRadius: 3,
-                    blurRadius: 5,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              padding: EdgeInsets.all(10.0),
-              child: Row(
-                children: [
-                  Icon(Icons.star),
-                  SizedBox(width: 10),
+                  SizedBox(height: 100),
                   Text(
-                    'Customer Rating: 100%',
-                    style: TextStyle(fontSize: 18),
+                    '**** **** **** 5488',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+
+                  FutureBuilder<String>(
+                    future: _getName(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.done) {
+                        return Text(
+                          '${snapshot.data}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        );
+                      } else {
+                        return SizedBox();
+                      }
+                    },
                   ),
                 ],
               ),
             ),
-            SizedBox(height: 20),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10.0),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.5),
-                    spreadRadius: 3,
-                    blurRadius: 5,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              padding: EdgeInsets.all(10.0),
-              child: Row(
-                children: [
-                  Icon(Icons.local_shipping),
-                  SizedBox(width: 10),
-                  Text(
-                    '0 Lifetime Deliveries',
-                    style: TextStyle(fontSize: 18),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 20),
-            GestureDetector(
-              onTap: () {
-                // Show a dialog with fake transfers table
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: Text('Transfers And Deposits'),
-                      content: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Fake transfers table
-                            // Replace this with your transfers table widget
 
-                            SizedBox(height: 20),
-                            // Check if there are deposits
-
-                            Text('No deposits yet'), // Display message when no deposits
-                            SizedBox(height: 20),
-                            // Bank Account
-                            Row(
-                              children: [
-                                ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (context) => EditBankScreen()),
-                                    );
-                                  },
-                                  child: Text('Payment Method'),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+            SizedBox(height: 20),
+            // Button blocks
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    // Fetch transaction data from Firestore
+                    await fetchTransactions();
+                    // Show dialog with transaction table
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return TransactionDialog(transactions: _transactions);
+                      },
                     );
                   },
-                );
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.5),
-                      spreadRadius: 3,
-                      blurRadius: 5,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                padding: EdgeInsets.all(10.0),
-                child: Row(
-                  children: [
-                    Icon(Icons.attach_money),
-                    SizedBox(width: 10),
-                    Text(
-                      'Transfers And Deposit',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  ],
+                  icon: Icon(Icons.list),
+                  label: Text('Transactions'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.black, side: BorderSide(color: Colors.black), // Border color
+                    padding: EdgeInsets.all(16.0), // Button padding
+                  ),
                 ),
               ),
             ),
-
-            SizedBox(height: 20),
-            Divider(),
-            ListTile(
-              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Adjust padding as needed
-              leading: Icon(Icons.message),
-              title: Text('Law Support'),
-              onTap: () {
-                // Add your action for Rental Vehicle
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SendMessagePage()),
-                );
-
-              },
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    // Navigate to Edit Bank Screen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => EditBankScreen()),
+                    );
+                  },
+                  icon: Icon(Icons.money),
+                  label: Text('Edit Bank'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.black, side: BorderSide(color: Colors.black), // Border color
+                    padding: EdgeInsets.all(16.0), // Button padding
+                  ),
+                ),
+              ),
             ),
-
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    // Navigate to Law Support Screen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SendMessagePage()),
+                    );
+                  },
+                  icon: Icon(Icons.support),
+                  label: Text('Law Support'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.black, side: BorderSide(color: Colors.black), // Border color
+                    padding: EdgeInsets.all(16.0), // Button padding
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {},
+                  icon: Icon(Icons.star),
+                  label: Text(ratingButtonText),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.black, side: BorderSide(color: Colors.black), // Border color
+                    padding: EdgeInsets.all(16.0), // Button padding
+                  ),
+                ),
+              ),
+            ),
 
 
           ],
@@ -263,4 +256,32 @@ class _ThirdScreenState extends State<ThirdScreen> {
       ),
     );
   }
+
+  // Function to fetch transaction data from Firestore
+  Future<void> fetchTransactions() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String userId = prefs.getString('uid') ?? '';
+
+    if (userId.isNotEmpty) {
+      // Reference to the user's document in Firestore
+      DocumentReference userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+
+      // Fetch data from the "transactions" subcollection under the user's document
+      QuerySnapshot querySnapshot = await userRef.collection('transactions').get();
+
+      // Extract data from documents
+      _transactions = querySnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+    }
+  }
+
+  // Function to get name from shared preferences
+  Future<String> _getName() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('name') ?? 'Unknown';
+  }
+}
+void main() {
+  runApp(MaterialApp(
+    home: ThirdScreen(),
+  ));
 }

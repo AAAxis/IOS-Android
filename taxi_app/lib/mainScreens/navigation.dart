@@ -34,16 +34,7 @@ class _NavigationState extends State<Navigation> {
   }
 
 
-  Future<Widget> _getEarningsPage(BuildContext context) async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final status = prefs.getString('status');
 
-    if (status == 'approved') {
-      return ThirdScreen();
-    } else {
-      return MultiStepRegistrationScreen();
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,16 +45,7 @@ class _NavigationState extends State<Navigation> {
         children: [
           MyHomePage(),
           ScheduleScreen(),
-          FutureBuilder<Widget>(
-            future: _getEarningsPage(context),
-            builder: (BuildContext context, AsyncSnapshot<Widget> snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              } else {
-                return snapshot.data ?? Container(); // Return a default widget if snapshot.data is null
-              }
-            },
-          ),
+        ThirdScreen()
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
