@@ -375,10 +375,8 @@ class _RentalScreenState extends State<RentalScreen> {
           // Request successful, handle response data here
           print('API Request Successful');
           print('Response: ${response.body}');
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => Navigation()),
-          );
+          Navigator.pop(context);
+
           // You can also navigate or show a success message here
         } else {
           // Request failed, handle error

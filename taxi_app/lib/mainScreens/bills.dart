@@ -106,6 +106,15 @@ class _UploadScreenState extends State<UploadScreen> {
               ),
             ),
             SizedBox(height: 20.0),
+
+            TextField(
+              controller: priceController,
+              decoration: InputDecoration(
+                labelText: 'Price',
+                prefixIcon: Icon(Icons.attach_money), // Icon for the price field
+              ),
+              keyboardType: TextInputType.number,
+            ),
             TextField(
               controller: typeController,
               decoration: InputDecoration(
@@ -119,14 +128,6 @@ class _UploadScreenState extends State<UploadScreen> {
                 labelText: 'Item Name',
                 prefixIcon: Icon(Icons.shopping_basket), // Icon for the item name field
               ),
-            ),
-            TextField(
-              controller: priceController,
-              decoration: InputDecoration(
-                labelText: 'Price',
-                prefixIcon: Icon(Icons.attach_money), // Icon for the price field
-              ),
-              keyboardType: TextInputType.number,
             ),
 
             SizedBox(height: 20.0),
@@ -337,17 +338,19 @@ class _EditScreenState extends State<EditScreen> {
   }
 
   void _updateBill(BuildContext context) async {
+    Navigator.pop(context);
     await FirebaseFirestore.instance.collection('bills').doc(widget.documentId).update({
       'type': typeController.text,
       'itemName': itemNameController.text,
       'price': double.parse(priceController.text),
     });
-    Navigator.pop(context);
+
   }
 
   void _removeBill(BuildContext context) async {
-    await FirebaseFirestore.instance.collection('bills').doc(widget.documentId).delete();
     Navigator.pop(context);
+    await FirebaseFirestore.instance.collection('bills').doc(widget.documentId).delete();
+
   }
 }
 

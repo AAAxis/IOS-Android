@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -148,7 +149,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
               "name": "Add Full Name",
               "status": "disabled",
               "phone": "Add Phone Number",
-              "address": "Add Address",
+              "address": "Add Delivery City",
               "email": userEmail,
               "userAvatarUrl": "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png",
               "trackingPermission": trackingPermissionStatus,
@@ -289,7 +290,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                 "email": userCredential.user!.email,
                 "name": "Add Full Name",
                 "phone": "Add Phone Number",
-                "address": "Add Delivery Address",
+                "address": "Add Delivery City",
                 "userAvatarUrl":
                 "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png",
                 "status": "disabled",
@@ -352,7 +353,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
               "email": userEmail,
               "name": userName,
               "phone": "Add Phone Number",
-              "address": "Add Delivery Address",
+              "address": "Add Delivery City",
               "userAvatarUrl": userImageUrl,
               "status": "disabled",
               "trackingPermission": trackingPermissionStatus,
@@ -376,20 +377,22 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
       if (snapshot.exists) {
         String status = snapshot.data()!["status"];
 
-        await sharedPreferences!.setString("uid", currentUser.uid);
-        await sharedPreferences!.setString("email", snapshot.data()!["email"]);
-        await sharedPreferences!.setString("name", snapshot.data()!["name"]);
-        await sharedPreferences!.setString("photoUrl", snapshot.data()!["userAvatarUrl"]);
-        await sharedPreferences!.setString("phone", snapshot.data()!["phone"]);
-        await sharedPreferences!.setString("status", status);
-        await sharedPreferences!.setString("address", snapshot.data()!["address"]);
+
+
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString("uid", currentUser.uid);
+        await prefs.setString("email", snapshot.data()!["email"]);
+        await prefs.setString("name", snapshot.data()!["name"]);
+        await prefs.setString("phone", snapshot.data()!["phone"]);
+        await prefs.setString("status", snapshot.data()!["status"]);
+        await prefs.setString("address", snapshot.data()!["address"]);
 
         Navigator.pop(context);
 
         // Navigate based on status
         switch (status) {
           case "disabled":
-            Navigator.push(context, MaterialPageRoute(builder: (c) => MultiStepRegistrationScreen()));
+            Navigator.push(context, MaterialPageRoute(builder: (c) => AddDataScreen()));
             break;
           case "self-employed":
             Navigator.push(context, MaterialPageRoute(builder: (c) => MyHomePage()));
@@ -424,6 +427,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
       }
     });
   }
+
 
   @override
   Widget build(BuildContext context) {

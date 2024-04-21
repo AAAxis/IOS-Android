@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -38,7 +39,7 @@ class BankInfoList extends StatelessWidget {
               subtitle: Text(doc?['transitNumber'] + ', ' + doc?['branch']),
               trailing: IconButton(
                 icon: Icon(Icons.delete),
-                onPressed: () => _deleteBankInfo(context, doc?.id),
+                onPressed: () => _deleteBankInfo(context, doc!.id),
               ),
             );
           },
@@ -48,29 +49,45 @@ class BankInfoList extends StatelessWidget {
   }
 
   Stream<QuerySnapshot> _getBankInfoStream(BuildContext context) async* {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? userEmail = prefs.getString('email');
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? uid = prefs.getString('uid');
 
-    if (userEmail == null) {
-      print('User email not found in shared preferences.');
-      return;
+      if (uid != null) {
+        yield* FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('bank')
+            .snapshots();
+      }
+    } catch (e) {
+      print('Error getting bank information stream: $e');
+      // Handle error as needed
     }
-
-    yield* FirebaseFirestore.instance
-        .collection('banks')
-        .where('userEmail', isEqualTo: userEmail)
-        .snapshots();
   }
 
-  void _deleteBankInfo(BuildContext context, String? docId) async {
+  void _deleteBankInfo(BuildContext context, String docId) async {
     try {
-      await FirebaseFirestore.instance.collection('banks').doc(docId).delete();
-      print('Bank information deleted from Firebase');
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? uid = prefs.getString('uid');
+
+      if (uid != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('bank')
+            .doc(docId)
+            .delete();
+        print('Bank information deleted from Firebase');
+      } else {
+        print('User UID not found in shared preferences.');
+      }
     } catch (e) {
       print('Error deleting bank information: $e');
       // Handle error as needed
     }
   }
+
 }
 
 class AddNewBankInfo extends StatelessWidget {
@@ -140,15 +157,19 @@ class AddNewBankInfo extends StatelessWidget {
       String transitNumber = _transitNumberController.text;
       String branch = _branchController.text;
 
-      // Reference to the user's document
-      DocumentReference userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+      // Reference to the 'banks' subcollection under the user document
+      CollectionReference userBankCollection = FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('bank');
 
-      // Update user's document with bank information
-      await userRef.set({
+      // Add bank information to the 'bank' subcollection under the user document
+      await userBankCollection.add({
         'bankName': bankName,
         'transitNumber': transitNumber,
         'branch': branch,
-      }, SetOptions(merge: true)); // Use merge to only update provided fields
+        // Add more fields if needed
+      });
 
       // Clear text fields after saving
       _bankNameController.clear();
@@ -157,10 +178,11 @@ class AddNewBankInfo extends StatelessWidget {
 
       // Show success message or navigate to another screen
       // For now, let's print a success message
-      print('Bank information saved to user document in Firebase');
+      print('Bank information saved to user\'s bank collection in Firestore');
     } catch (e) {
       print('Error saving bank information: $e');
       // Handle error as needed
     }
   }
+
 }

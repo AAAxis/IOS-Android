@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taxi_app/mainScreens/bank.dart';
 import 'package:taxi_app/mainScreens/law_support.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 
 class TransactionDialog extends StatelessWidget {
@@ -36,7 +37,7 @@ class TransactionDialog extends StatelessWidget {
                 DataCell(Text('\$${transaction['money']}')),
                 DataCell(Text(formattedDate)),
                 // Modified line to include the dollar sign
-                DataCell(Text(transaction['deliveryCompleted'].toString())), // New cell for the provider column
+                DataCell(Text(transaction['delivery'].toString())), // New cell for the provider column
               ]);
             }).toList(),
           ),
@@ -90,14 +91,20 @@ class _ThirdScreenState extends State<ThirdScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Balance'),
-      ),
-      body: Padding(
+
+      body:
+
+      Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            SizedBox(height: 40),
+            Text(
+              'Balance',
+              style: TextStyle(fontSize: 27, fontWeight: FontWeight.normal), // Larger font size
+            ),
+            SizedBox(height: 10),
             // Credit Card Placeholder
             Container(
               padding: EdgeInsets.all(16.0),
@@ -204,7 +211,7 @@ class _ThirdScreenState extends State<ThirdScreen> {
                       MaterialPageRoute(builder: (context) => EditBankScreen()),
                     );
                   },
-                  icon: Icon(Icons.money),
+                  icon: Icon(Icons.monetization_on),
                   label: Text('Edit Bank'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.black, side: BorderSide(color: Colors.black), // Border color
@@ -219,13 +226,12 @@ class _ThirdScreenState extends State<ThirdScreen> {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    // Navigate to Law Support Screen
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SendMessagePage()),
-                    );
+                    // Add your action for Insurance]
+                    _launchURL('https://theholylabs.com'); // Replace the URL with your terms and conditions URL
+
+
                   },
-                  icon: Icon(Icons.support),
+                  icon: Icon(Icons.gavel),
                   label: Text('Law Support'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.black, side: BorderSide(color: Colors.black), // Border color
@@ -280,6 +286,17 @@ class _ThirdScreenState extends State<ThirdScreen> {
     return prefs.getString('name') ?? 'Unknown';
   }
 }
+
+
+// Function to launch the URL
+void _launchURL(String url) async {
+  if (await launch(url)) {
+    await launch(url);
+  } else {
+    throw 'Could not launch $url';
+  }
+}
+
 void main() {
   runApp(MaterialApp(
     home: ThirdScreen(),

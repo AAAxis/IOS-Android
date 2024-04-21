@@ -18,28 +18,41 @@ class ScheduleScreen extends StatefulWidget {
 class _ScheduleScreenState extends State<ScheduleScreen> {
   bool isSaved = false;
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Text(isSaved ? 'Saved Slots' : 'Schedule'),
-            Spacer(),
-            Switch(
-              value: isSaved,
-              onChanged: (value) {
-                setState(() {
-                  isSaved = value;
-                });
-              },
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 50.0, left: 20.0, right: 20.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  isSaved ? 'Saved Slots' : 'Schedule',
+                  style: TextStyle(fontSize: 27),
+                ),
+                Switch(
+                  value: isSaved,
+                  onChanged: (value) {
+                    setState(() {
+                      isSaved = value;
+                    });
+                  },
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          Expanded(
+            child: isSaved ? SavedScheduleList() : SlotList(),
+          ),
+        ],
       ),
-      body: isSaved ? SavedScheduleList() : SlotList(), // Display SavedScheduleList or SlotList based on isSaved value
     );
   }
+
 }
 
 class SlotList extends StatelessWidget {
@@ -74,21 +87,38 @@ class SlotRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(data['day']),
+      title: Text(
+        data['day'],
+        style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+      ),
       subtitle: Row(
         children: [
           Expanded(
-            child: Text('Clock In: ${data['clockIn']}'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'From: ${data['clockIn']} to ${data['clockOut']}',
+                  style: TextStyle(fontSize: 14.0),
+                ),
+                Text(
+                  '${data['provider']}',
+                  style: TextStyle(fontSize: 12.0),
+                ),
+
+              ],
+            ),
           ),
-          Expanded(
-            child: Text('Clock Out: ${data['clockOut']}'),
-          ),
+
+          SizedBox(width: 8.0),
           IconButton(
             icon: Icon(Icons.archive),
             onPressed: () {
               _moveToSaved(context, data);
             },
           ),
+         // Add some space between elements
+
         ],
       ),
     );
@@ -171,24 +201,42 @@ class SavedScheduleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(data['day']),
+      title: Text(
+        data['day'],
+        style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+      ),
       subtitle: Row(
         children: [
           Expanded(
-            child: Text('Clock In: ${data['clockIn']}'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'From: ${data['clockIn']} to ${data['clockOut']}',
+                  style: TextStyle(fontSize: 14.0),
+                ),
+                Text(
+                  '${data['provider']}',
+                  style: TextStyle(fontSize: 12.0),
+                ),
+
+              ],
+            ),
           ),
-          Expanded(
-            child: Text('Clock Out: ${data['clockOut']}'),
-          ),
+
+          SizedBox(width: 8.0),
           IconButton(
             icon: Icon(Icons.delete),
             onPressed: () {
               _deleteSchedule(context, docId);
             },
           ),
+          // Add some space between elements
+
         ],
       ),
     );
+
   }
 
   void _deleteSchedule(BuildContext context, String docId) async {

@@ -7,6 +7,8 @@ import 'package:taxi_app/authentication/auth_screen.dart';// import your authent
 import 'package:taxi_app/mainScreens/home_screen.dart';
 import 'package:taxi_app/mainScreens/navigation.dart';
 
+import '../global/global.dart';
+
 class MySplashScreen extends StatefulWidget {
   const MySplashScreen({Key? key}) : super(key: key);
 
@@ -15,38 +17,8 @@ class MySplashScreen extends StatefulWidget {
 }
 
 class _MySplashScreenState extends State<MySplashScreen> {
-  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance; // Initialize Firebase Auth
 
-  void _navigateToHomeScreen() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String userStatus = prefs.getString('status') ?? ''; // Retrieve user status from SharedPreferences
 
-    // Navigate to ContractorScreen or SelfEmployedScreen based on status
-    if (userStatus == 'contractor') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => Navigation()),
-      );
-    } else {
-      // Handle other cases, for example, navigate to an error screen or inform the user
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => MyHomePage()), // Replace ErrorScreen with appropriate screen
-      );
-    }
-
-  }
-
-  void _navigateToAuthScreen() async {
-    // Request tracking permission
-    await _requestPermissionManually();
-
-    // Navigate to the login screen
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (c) => MergedLoginScreen()),
-    );
-  }
 
   Future<void> _requestPermissionManually() async {
     final trackingStatus = await AppTrackingTransparency.requestTrackingAuthorization();
@@ -71,12 +43,26 @@ class _MySplashScreenState extends State<MySplashScreen> {
 
   void _checkCurrentUser() {
     Timer(Duration(seconds: 3), () async {
-      User? user = _firebaseAuth.currentUser;
+      String userStatus = sharedPreferences!.getString("status") ?? "Disabled"; // Retrieve user status from SharedPreferences
 
-      if (user != null) {
-        _navigateToHomeScreen();
+      // Navigate to ContractorScreen or SelfEmployedScreen based on status
+      if (userStatus == 'contractor') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => Navigation()),
+        );
+      } else if (userStatus == 'self-employed') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MyHomePage()),
+        );
       } else {
-        _navigateToAuthScreen();
+        await _requestPermissionManually();
+        // Handle other cases, for example, navigate to an authentication screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MergedLoginScreen()),
+        );
       }
     });
   }

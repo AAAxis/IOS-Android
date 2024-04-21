@@ -3,15 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SendMessagePage extends StatefulWidget {
-
-
   @override
   _SendMessagePageState createState() => _SendMessagePageState();
 }
 
 class _SendMessagePageState extends State<SendMessagePage> {
   final TextEditingController _messageController = TextEditingController();
-   late String _chatRoomId;
+  late String _chatRoomId;
 
   @override
   void initState() {
@@ -26,6 +24,19 @@ class _SendMessagePageState extends State<SendMessagePage> {
     });
   }
 
+  Future<void> _deleteMessage(String messageId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_chatRoomId)
+          .collection('messages')
+          .doc(messageId)
+          .delete();
+    } catch (e) {
+      print('Error deleting message: $e');
+      // Handle error accordingly
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +47,46 @@ class _SendMessagePageState extends State<SendMessagePage> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 8.0),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        backgroundImage: AssetImage(
+                            'images/profile.png'), // Placeholder image
+                        radius: 24,
+                      ),
+                      SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Support', // Placeholder name
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '+16474724580', // Placeholder phone number
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 30),
             Expanded(
               child: StreamBuilder(
                 stream: FirebaseFirestore.instance
@@ -56,23 +106,39 @@ class _SendMessagePageState extends State<SendMessagePage> {
                   if (snapshot.hasData) {
                     final data = snapshot.data;
                     if (data is QuerySnapshot) {
-                      messages = data?.docs.cast<QueryDocumentSnapshot<Map<String, dynamic>>>();
+                      messages =
+                          data?.docs.cast<QueryDocumentSnapshot<Map<String, dynamic>>>();
                     }
                   }
 
-                  List<Widget> messageWidgets = [];
+                  return ListView.builder(
+                    reverse: false,
+                    itemCount: messages?.length ?? 0,
+                    itemBuilder: (context, index) {
+                      final message = messages?[index];
+                      if (message != null) {
+                        final String text = message['text'];
+                        final String sender = message['sender'];
+                        final String messageId = message.id;
 
-                  for (var message in messages!) {
-                    String text = message['text'];
-                    String sender = message['sender'];
-
-                    Widget messageWidget = _buildMessageWidget(sender, text);
-                    messageWidgets.add(messageWidget);
-                  }
-
-                  return ListView(
-                    reverse: true,
-                    children: messageWidgets,
+                        return Dismissible(
+                          key: Key(messageId),
+                          direction: DismissDirection.horizontal,
+                          background: Container(
+                            color: Colors.red,
+                            padding: EdgeInsets.symmetric(horizontal: 20),
+                            alignment: Alignment.centerLeft,
+                            child: Icon(Icons.delete, color: Colors.white),
+                          ),
+                          onDismissed: (direction) {
+                            _deleteMessage(messageId);
+                          },
+                          child: _buildMessageWidget(sender, text),
+                        );
+                      } else {
+                        return SizedBox();
+                      }
+                    },
                   );
                 },
               ),

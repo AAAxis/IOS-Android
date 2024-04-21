@@ -5,7 +5,8 @@ import 'package:taxi_app/global/global.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:url_launcher/url_launcher.dart';
+
+import 'package:http/http.dart' as http;
 
 class MyDrawerPage extends StatefulWidget {
   @override
@@ -18,9 +19,12 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
   final TextEditingController phoneController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>(); // Initialize formKey
 
+
+
   @override
   void initState() {
     super.initState();
+
   }
 
   Future<void> signOutAndClearPrefs(BuildContext context) async {
@@ -32,6 +36,8 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
       MaterialPageRoute(builder: (context) => MergedLoginScreen()),
     );
   }
+
+
 
   bool isPhoneNumberValid(String? value) {
     if (value == null) return false;
@@ -68,16 +74,19 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
       body: ListView(
         children: [
           Container(
-            width: 180, // Adjust the width of the container to control the size of the image
-            height: 180, // Adjust the height of the container to control the size of the image
+            width: 180,
+            height: 180,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               image: DecorationImage(
-                fit: BoxFit.cover, // Cover the entire circle with the image
-                image: NetworkImage('https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg'), // Replace with your placeholder photo URL
+                fit: BoxFit.cover,
+                // Use AssetImage to load the image from assets
+                image: AssetImage('images/profile.png'),
               ),
             ),
           ),
+
+
           SizedBox(height: 20), // Adding space between the two containers
           ListTile(
             leading: const Icon(Icons.email, color: Colors.black),
@@ -86,13 +95,7 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
               style: const TextStyle(color: Colors.black),
             ),
           ),
-          ListTile(
-            leading: const Icon(Icons.work, color: Colors.black),
-            title: Text(
-              sharedPreferences!.getString("status") ?? "Dissabled",
-              style: const TextStyle(color: Colors.black),
-            ),
-          ),
+
           ListTile(
             leading: const Icon(Icons.person, color: Colors.black),
             title: GestureDetector(
@@ -269,6 +272,15 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
               ),
             ),
           ),
+          ListTile(
+            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Adjust padding as needed
+            leading: const Icon(Icons.language, color: Colors.black),
+            title: const Text(
+              "Language: English",
+              style: TextStyle(color: Colors.black),
+            ),
+          ),
+
           const Divider(
             height: 10,
             color: Colors.grey,
@@ -281,92 +293,31 @@ class _MyDrawerPageState extends State<MyDrawerPage> {
               style: TextStyle(color: Colors.black),
             ),
             onTap: () async {
-              final FirebaseAuth _auth = FirebaseAuth.instance;
-              final User? user = _auth.currentUser;
-              if (user != null && user.email != null) {
-                // Show a confirmation dialog
-                bool confirmDelete = await showDialog(
-                  context: context,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: const Text("Confirm"),
-                      content: const Text("Do you really want to delete the account data?"),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context, false); // Return false if the user cancels
-                          },
-                          child: const Text("Cancel"),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context, true); // Return true if the user confirms
-                          },
-                          child: const Text("Delete"),
-                        ),
-                      ],
-                    );
-                  },
+              // Clear preferences
+              signOutAndClearPrefs(context);
+
+              String email = FirebaseAuth.instance.currentUser?.email ?? "No Email";
+              // Encode the email address to handle special characters
+              String encodedEmail = Uri.encodeComponent(email);
+
+              var response = await http.delete(Uri.parse('https://polskoydm.pythonanywhere.com/delete?email=$encodedEmail'));
+
+              if (response.statusCode == 200) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Delete User Data Request sent"),
+                  ),
                 );
-
-                if (confirmDelete == true) {
-                  try {
-                    // Delete user profile data from Firestore
-                    await FirebaseFirestore.instance.collection('users').doc(user.uid).delete();
-                    // Delete user account
-                    await user.delete();
-
-                    // Clear preferences
-                    signOutAndClearPrefs(context);
-
-
-                    // Open link
-                    final String email = user.email!;
-                    final url = 'https://polskoydm.pythonanywhere.com/delete?email=$email'; // Replace with the URL you want to open
-                    await launch(url); // Launch the URL
-
-                    // Navigate to sign-in screen or any other screen
-                  } catch (error) {
-                    showDialog(
-                      context: context,
-                      builder: (context) {
-                        return AlertDialog(
-                          title: const Text("Error"),
-                          content: Text("An error occurred while deleting the profile: $error"),
-                          actions: [
-                            TextButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
-                              child: const Text("OK"),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  }
-                }
               } else {
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: const Text("Error"),
-                      content: const Text("User information not available."),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          child: const Text("OK"),
-                        ),
-                      ],
-                    );
-                  },
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Failed to delete account data"),
+                  ),
                 );
               }
             },
           ),
+
         ],
       ),
     );
