@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:maps_launcher/maps_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'discover_screen.dart';
+import 'home_screen.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final Map<String, dynamic> chatRoom;

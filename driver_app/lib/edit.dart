@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 
 class EditProfileScreen extends StatefulWidget {
@@ -24,7 +25,19 @@ class _EditProfileScreenState extends State {
     fetchMerchantData();
   }
 
+  void _openMyOrdersLink() async {
+    // Retrieve token from SharedPreferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String token = prefs.getString('siteToken') ?? '';
 
+
+    // URL with token appended
+    String url = 'https://polskoydm.pythonanywhere.com/$token/dashboard';
+
+
+    await launch(url);
+
+  }
 
   // Function to fetch merchant data from Firebase
   Future<void> fetchMerchantData() async {
@@ -95,7 +108,13 @@ class _EditProfileScreenState extends State {
             SizedBox(height: 20),
             Text('Balance: ${merchantData!['balance'] ?? 'N/A'}'),
             SizedBox(height: 20),
-
+            ElevatedButton(
+              onPressed: () {
+                // Add your logic for My Orders button here
+                _openMyOrdersLink();
+              },
+              child: Text('Transactionss'),
+            ),
           ],
         ),
       ),

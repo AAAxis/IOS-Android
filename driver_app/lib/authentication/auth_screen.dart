@@ -1,17 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/admin.dart';
 import 'package:driver_app/authentication/email_login.dart';
-import 'package:driver_app/widgets/home_screen.dart';
+import 'package:driver_app/widgets/navigation_bar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:the_apple_sign_in/the_apple_sign_in.dart';
-import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
 import '../global/global.dart';
 import '../widgets/error_dialog.dart';
 
@@ -26,10 +21,6 @@ class MergedLoginScreen extends StatefulWidget {
 }
 
 class _MergedLoginScreenState extends State<MergedLoginScreen> {
-
-  final TextEditingController codeController = TextEditingController();
-
-
 
 
   Future<void> appleSign() async {
@@ -60,23 +51,23 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                 sharedPreferences!.getBool("tracking") ?? false;
 
             DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-                .collection("users")
+                .collection("drivers")
                 .doc(uid)
                 .get();
 
             if (!userSnapshot.exists) {
               await FirebaseFirestore.instance
-                  .collection("users")
+                  .collection("drivers")
                   .doc(uid)
                   .set({
                 "uid": uid,
+                "status": "offline",
+                "current_task": "searching",
+                "balance": 0,
+                "approval": false,
                 "email": userCredential.user!.email,
                 "name": "Add Full Name",
                 "phone": "Add Phone Number",
-                "address": "Add Delivery Address",
-                "userAvatarUrl":
-                "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png",
-                "status": "approved",
                 "trackingPermission": trackingPermissionStatus,
               });
             }
@@ -118,12 +109,11 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
 
         if (user != null) {
           String uid = user.uid;
-          String userImageUrl = user.photoURL ?? "";
           String userEmail = user.email ?? "";
           String userName = user.displayName ?? "";
 
           DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-              .collection("users")
+              .collection("drivers")
               .doc(uid)
               .get();
 
@@ -131,14 +121,15 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
             bool trackingPermissionStatus =
                 sharedPreferences!.getBool("tracking") ?? false;
 
-            FirebaseFirestore.instance.collection("users").doc(uid).set({
+            FirebaseFirestore.instance.collection("drivers").doc(uid).set({
               "uid": uid,
               "email": userEmail,
               "name": userName,
               "phone": "Add Phone Number",
-              "address": "Add Delivery Address",
-              "userAvatarUrl": userImageUrl,
-              "status": "approved",
+              "current_task": "searching",
+              "status": "offline",
+              "approval": false,
+              "balance": 0,
               "trackingPermission": trackingPermissionStatus,
             });
           }
@@ -153,33 +144,28 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
 
   Future readDataAndSetDataLocally(User currentUser) async {
     await FirebaseFirestore.instance
-        .collection("users")
+        .collection("drivers")
         .doc(currentUser.uid)
         .get()
         .then((snapshot) async {
       if (snapshot.exists) {
-        if (snapshot.data()!["status"] == "approved") {
+
           await sharedPreferences!.setString("uid", currentUser.uid);
           await sharedPreferences!.setString(
               "email", snapshot.data()!["email"]);
           await sharedPreferences!.setString("name", snapshot.data()!["name"]);
           await sharedPreferences!.setString(
-              "photoUrl", snapshot.data()!["userAvatarUrl"]);
-          await sharedPreferences!.setString(
               "phone", snapshot.data()!["phone"]);
           await sharedPreferences!.setString(
-              "address", snapshot.data()!["address"]);
+              "current_task", snapshot.data()!["current_task"]);
+          await sharedPreferences!.setString(
+              "status", snapshot.data()!["status"]);
+
 
           Navigator.pop(context);
           Navigator.push(
-              context, MaterialPageRoute(builder: (c) => MyOrderPage()));
+              context, MaterialPageRoute(builder: (c) => MainScreen()));
         } else {
-          _auth.signOut();
-          Navigator.pop(context);
-          Fluttertoast.showToast(
-              msg: "Admin has blocked your account. \n\nMail here: polskoydm@gmail.com");
-        }
-      } else {
         _auth.signOut();
         Navigator.pop(context);
         Navigator.push(context,
@@ -197,63 +183,6 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
     });
   }
 
-  Future<void> loginMerchant() async {
-
-    final enteredCode = codeController.text.trim();
-
-    try {
-      DocumentSnapshot merchantSnapshot =
-      await FirebaseFirestore.instance.collection("merchants").doc(enteredCode).get();
-
-      if (merchantSnapshot.exists) {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('siteToken', enteredCode);
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (c) => AdminPage()),
-        );
-      } else {
-        showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: Text('Verification Failed'),
-              content: Text('Merchant site not found. Please enter a valid verification code.'),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: Text('OK'),
-                ),
-              ],
-            );
-          },
-        );
-      }
-    } catch (e) {
-      // Handle errors
-      print('Error: $e');
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text('Error'),
-            content: Text('An error occurred. Please try again later.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-    }
-  }
 
 
 
@@ -395,91 +324,7 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                     ),
                   ),
                 ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(0, 8, 0, 0),
-                child: GestureDetector(
-                  onTap: () async {
-                    String? siteToken = sharedPreferences!.getString("siteToken");
-                    if (siteToken != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => AdminPage()),
-                      );
-                    } else {
-                      showDialog(
-                        context: context,
-                        builder: (context) {
-                          return AlertDialog(
-                            title: Text('Login as Merchant'),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                TextFormField(
-                                  controller: codeController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Merchant Code',
-                                  ),
-                                  validator: (value) {
-                                    // Code validation
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter the verification code';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                SizedBox(height: 18),
-                                GestureDetector(
-                                  onTap: () {
-                                    // Navigate to the sign-up page when tapped
-                                    // Open the sign-up website when tapped
-                                    const url = 'https://polskoydm.pythonanywhere.com/merchant_register'; // Replace with your website URL
-                                    launch(url);
-                                  },
-                                  child: Text(
-                                    "I Don't have Merchant Code",
-                                    style: TextStyle(
-                                      color: Colors.blue,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  // Add your logic to verify email and code here
-                                  loginMerchant();
-                                },
-                                child: Text('Submit'),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    }
-                  },
 
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Login as Merchant",
-                        textAlign: TextAlign.start,
-                        overflow: TextOverflow.clip,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w400,
-                          fontStyle: FontStyle.normal,
-                          fontSize: 14,
-                          color: Color(0xff9e9e9e),
-                        ),
-                      ),
-                      SizedBox(height: 8), // Add some space between login text and additional options
-
-                    ],
-                  ),
-                ),
-              ),
 
     ],
           ),

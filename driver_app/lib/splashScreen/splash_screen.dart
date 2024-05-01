@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:driver_app/authentication/auth_screen.dart';
-import 'package:driver_app/my_list.dart';
-import 'package:driver_app/widgets/home_screen.dart';
+import 'package:driver_app/widgets/navigation_bar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,7 +19,7 @@ class _MySplashScreenState extends State<MySplashScreen> {
   void _navigateToHomeScreen() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (c) => MyOrderPage()),
+      MaterialPageRoute(builder: (c) => MainScreen()),
     );
   }
 

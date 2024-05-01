@@ -4,8 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:order_app/mainScreens/home_screen.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:order_app/mainScreens/discover_screen.dart';
+import 'package:order_app/widgets/navigation_bar.dart';
 
 import '../authentication/auth_screen.dart';
 import '../global/global.dart';
@@ -109,7 +108,7 @@ class _PaymentPageState extends State<PaymentPage> {
                 // Navigate to the home page
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
-                    builder: (context) => MyHomePage(), // Replace with the actual widget for your home page
+                    builder: (context) => NavigationPage(), // Replace with the actual widget for your home page
                   ),
                 );
               },

@@ -1,5 +1,6 @@
 import 'package:driver_app/edit.dart';
 import 'package:driver_app/upload.dart';
+import 'package:driver_app/widgets/merchantOrders.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -46,19 +47,7 @@ class _AdminPageState extends State<AdminPage> {
 
 
 
-  void _openMyOrdersLink() async {
-    // Retrieve token from SharedPreferences
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String token = prefs.getString('siteToken') ?? '';
 
-
-    // URL with token appended
-    String url = 'https://polskoydm.pythonanywhere.com/$token/dashboard';
-
-
-      await launch(url);
-
-  }
 
 
   // Function to load site token from SharedPreferences
@@ -160,13 +149,18 @@ class _AdminPageState extends State<AdminPage> {
               child: Text('Add Item'),
             ),
             SizedBox(height: 10),
+
             ElevatedButton(
               onPressed: () {
-                // Add your logic for My Orders button here
-                _openMyOrdersLink();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => PaymentStore()),
+                );
               },
               child: Text('My Orders'),
             ),
+
+
             SizedBox(height: 10),
             ElevatedButton(
               onPressed: () {

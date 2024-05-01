@@ -5,9 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:order_app/authentication/auth_screen.dart';
 import 'package:order_app/mainScreens/success_screen.dart';
-import 'package:order_app/widgets/my_drawer.dart';
 import '../global/global.dart';
 
 
@@ -153,14 +151,14 @@ class _MapScreenState extends State<MapScreen> {
       return price < 100 ? 100 : price;
     } else if (carType == 'Bike') {
       double price = distanceInMeters / 1000 * 2.0 - 100;
-      return (price < 100 ? 100 : price).toInt();
+      return (price < 50 ? 50 : price).toInt();
     }
     return 0; // Default to 0 if carType is not recognized
   }
 
 
   Future<void> createOrder() async {
-    final apiUrl = 'https://polskoydm.pythonanywhere.com/taxi'; // Replace with your API endpoint
+    final apiUrl = 'https://polskoydm.pythonanywhere.com/taxi_order'; // Replace with your API endpoint
 
     // Calculate the order details
     double distanceInKilometers = distanceInMeters / 1000;
@@ -196,14 +194,11 @@ class _MapScreenState extends State<MapScreen> {
       print('API Request Success: ${response.body}');
 
       final responseJson = json.decode(response.body);
-      final orderID = responseJson['order_id'];
+      final orderID = responseJson['order_id'].toString(); // Convert to String
 
-      // Now, you have the order ID and can proceed to the payment link
+// Now, you have the order ID and can proceed to the payment link
       if (orderID != null) {
-        if (selectedPaymentMethod == 'Card') {
-          // Call your function to generate and navigate to the card payment link
-          navigateToCardPayment(orderID);
-        } else if (selectedPaymentMethod == 'Cash') {
+        if (selectedPaymentMethod == 'Cash') {
           // Display instructions or navigate to a page for cash payment
           navigateToCashPayment(orderID);
         }
@@ -211,6 +206,7 @@ class _MapScreenState extends State<MapScreen> {
         print('Order ID not found in response.');
         // Handle the scenario where order ID is not available.
       }
+
     } else {
       // Handle API request failure
       print('API Request Failed: ${response.statusCode} - ${response.reasonPhrase}');
@@ -240,52 +236,10 @@ class _MapScreenState extends State<MapScreen> {
   }
 
 
-  Future<void> navigateToCardPayment(String orderID) async {
-    final apiUrl = 'https://polskoydm.pythonanywhere.com/billapay/$orderID'; // Replace with your card payment API endpoint
 
-    final response = await http.post(
-      Uri.parse(apiUrl),
-      // Include any required headers and data for the card payment request
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: json.encode({
-        'orderID': orderID,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final responseJson = json.decode(response.body);
-      if (responseJson['message'] == 'Payment successful!') {
-        // Payment was successful, navigate to the 'SuccessPage'
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => SuccessPage()),
-        );
-      } else {
-        // Handle payment error and show an error dialog
-        showErrorDialog(context, "Payment failed: ${responseJson['message']}");
-      }
-    } else {
-      // Handle HTTP request error and show an error dialog
-      showErrorDialog(context, "HTTP request failed with status code: ${response.statusCode}");
-    }
-  }
 
   Future<void> navigateToCashPayment(String orderID) async {
 
-    final apiUrl = 'https://polskoydm.pythonanywhere.com/cash/$orderID'; // Include your server's URL
-
-    await http.post(
-      Uri.parse(apiUrl),
-      // Include any required headers and data for the card payment request
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: json.encode({
-        'orderID': orderID,
-      }),
-    );
 
     Navigator.push(
       context,
@@ -470,7 +424,7 @@ class _MapScreenState extends State<MapScreen> {
                                     selectedPaymentMethod = newValue;
                                   });
                                 },
-                                items: <String>['Cash', 'Card']
+                                items: <String>['Cash']
                                     .map<DropdownMenuItem<String>>((String value) {
                                   return DropdownMenuItem<String>(
                                     value: value,

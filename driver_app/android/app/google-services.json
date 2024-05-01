@@ -22,11 +22,11 @@
           }
         },
         {
-          "client_id": "868698601721-mnr5gv99nm4mvh2pqpqapqnl5isi55ef.apps.googleusercontent.com",
+          "client_id": "868698601721-lf9cb4mt0baad3n7uugre7hs7l393pgr.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.wheels.driverapp",
-            "certificate_hash": "cfca26cea41e027676f8b7ef65a34d4eee92f81e"
+            "certificate_hash": "6a58850dfeeb6bedf887c9012c5ee07429857127"
           }
         },
         {
@@ -74,6 +74,14 @@
           }
         },
         {
+          "client_id": "868698601721-k4n04ah5qf5qur1884os3fhl502be0ns.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wheels.orderapp",
+            "certificate_hash": "cfca26cea41e027676f8b7ef65a34d4eee92f81e"
+          }
+        },
+        {
           "client_id": "868698601721-gafc61dsfp14a0u6rnvhgfpsltpppoet.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -109,6 +117,22 @@
         }
       },
       "oauth_client": [
+        {
+          "client_id": "868698601721-m2m307u9lt0op2850dk5inn3gcnfof06.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wheels.taxiapp",
+            "certificate_hash": "6a58850dfeeb6bedf887c9012c5ee07429857127"
+          }
+        },
+        {
+          "client_id": "868698601721-sn5m1u09vcp6q774l5vghfaij683k6po.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wheels.taxiapp",
+            "certificate_hash": "2d75e45e7735da6717b750dfc38d1989fc886544"
+          }
+        },
         {
           "client_id": "868698601721-gafc61dsfp14a0u6rnvhgfpsltpppoet.apps.googleusercontent.com",
           "client_type": 3

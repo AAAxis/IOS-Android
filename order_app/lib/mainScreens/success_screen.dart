@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:order_app/mainScreens/home_screen.dart';
+import 'package:order_app/widgets/navigation_bar.dart';
 
 class SuccessPage extends StatelessWidget {
   @override
@@ -16,7 +16,7 @@ class SuccessPage extends StatelessWidget {
               onPressed: () {
                 // Navigate back to the home page when the button is pressed
                 Navigator.push(context,
-                    MaterialPageRoute(builder: (c) => MyHomePage()));
+                    MaterialPageRoute(builder: (c) => NavigationPage()));
 
               },
               child: Text('Back Home'),

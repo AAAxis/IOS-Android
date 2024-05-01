@@ -26,12 +26,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
 
-  String _selectedCategory = 'Drinks'; // Initialize to the first category
+  String _selectedCategory = 'drinks'; // Initialize to the first category
 
   final List<String> _categories = [
-    'Combos',
-    'Single',
-    'Drinks',
+    'combos',
+    'single',
+    'drinks',
 
   ];
 

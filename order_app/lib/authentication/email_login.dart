@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:driver_app/widgets/navigation_bar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:order_app/widgets/navigation_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../global/global.dart';
@@ -131,21 +131,19 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
 
           // Check if the user exists in Firestore
           DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-              .collection("drivers")
+              .collection("users")
               .doc(uid)
               .get();
 
           if (!userSnapshot.exists) {
             // If the user doesn't exist in Firestore, create a new document
-            await FirebaseFirestore.instance.collection("drivers").doc(uid).set({
+            await FirebaseFirestore.instance.collection("users").doc(uid).set({
               "uid": uid,
               "name": "Add Full Name",
               "phone": "Add Phone Number",
               "email": userEmail,
-              "balance": 0,
-              "approval": false,
-              "current_task": "searching",
-              "status": "offline",
+              "address": "Add Location",
+              "status": "approved",
 
                    "trackingPermission": trackingPermissionStatus,
             });
@@ -247,7 +245,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
 
   Future readDataAndSetDataLocally(User currentUser) async {
     await FirebaseFirestore.instance
-        .collection("drivers")
+        .collection("users")
         .doc(currentUser.uid)
         .get()
         .then((snapshot) async {
@@ -257,16 +255,14 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
               "email", snapshot.data()!["email"]);
           await sharedPreferences!.setString("name", snapshot.data()!["name"]);
           await sharedPreferences!.setString(
-              "status", snapshot.data()!["status"]);
-          await sharedPreferences!.setString(
-              "current_task", snapshot.data()!["current_task"]);
+              "address", snapshot.data()!["address"]);
           await sharedPreferences!.setString(
               "phone", snapshot.data()!["phone"]);
 
 
           Navigator.pop(context);
           Navigator.push(
-              context, MaterialPageRoute(builder: (c) => MainScreen()));
+              context, MaterialPageRoute(builder: (c) => NavigationPage()));
         } else {
         _auth.signOut();
         Navigator.pop(context);

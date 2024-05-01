@@ -1,93 +1,152 @@
-import 'package:order_app/authentication/auth_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:order_app/mainScreens/discover_screen.dart';
-import 'package:order_app/mainScreens/map_screen.dart';
-import 'package:order_app/widgets/my_drawer.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'chat_screen.dart';
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:order_app/global/global.dart';
+import 'package:order_app/splashScreen/splash_screen.dart';
+import 'menu_page.dart';
 
-class MyHomePage extends StatefulWidget {
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _currentIndex = 0;
-  bool _isLoggedIn = false; // Initialize as not logged in
+class _HomeScreenState extends State<HomeScreen> {
+  late Stream<QuerySnapshot<Map<String, dynamic>>> _restaurantsStream;
+  List<Map<String, dynamic>> filteredRestaurants = [];
+  TextEditingController searchController = TextEditingController();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  final List<Widget> _screens = [
-    HomeScreen(),
-    MapScreen(), // Add MapScreen here
-    MyDrawerPage(),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    checkLoggedInStatus(); // Check the login status when the widget initializes
-  }
-
-  // Function to check login status
-  void checkLoggedInStatus() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      // Check if "user_email" is present in SharedPreferences
-      _isLoggedIn = prefs.getString('email') != null;
+  void restrictBlockedUsersFromUsingApp() async {
+    await FirebaseFirestore.instance
+        .collection("users")
+        .doc(firebaseAuth.currentUser!.uid)
+        .get()
+        .then((snapshot) {
+      if (snapshot.data()!["status"] != "approved") {
+        firebaseAuth.signOut();
+        Fluttertoast.showToast(msg: "You have been Blocked");
+        Navigator.push(
+            context, MaterialPageRoute(builder: (c) => MySplashScreen()));
+      } else {
+        Fluttertoast.showToast(msg: "Login Successful");
+      }
     });
   }
 
   @override
+  void initState() {
+    super.initState();
+    _restaurantsStream = FirebaseFirestore.instance.collection('merchants').where('receivingOrders', isEqualTo: true).snapshots();
+    restrictBlockedUsersFromUsingApp();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: ThemeData(
-        // Customize the theme here
-        appBarTheme: AppBarTheme(
-          color: Colors.black, // Set the app bar background color to black
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: AppBar(
+        title: Text(
+          "Restaurants",
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        scaffoldBackgroundColor: Colors.white12, // Set the scaffold background color to black
+        leading: IconButton(
+          icon: Icon(Icons.restaurant_outlined),
+          onPressed: () {},
+        ),
       ),
-      child: Scaffold(
-
-        body: IndexedStack(
-          index: _currentIndex,
-          children: _screens,
-        ),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          selectedItemColor: Colors.black, // Set icon color to black
-          onTap: (index) {
-            if (index == 2 && !_isLoggedIn) {
-              // If "Login" button is tapped and not logged in, navigate to AuthScreen
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => MergedLoginScreen(),
-              ));
-            } else {
-              setState(() {
-                _currentIndex = index;
-              });
-            }
-          },
-          type: BottomNavigationBarType.fixed, // Fixed type to center icons
-          items: [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.food_bank_outlined, size: 35), // Increase icon size
-              label: 'Eats', // Label text
+      body: Column(
+        children: [
+          SizedBox(height: 20),
+          CarouselSlider(
+            options: CarouselOptions(
+              height: 250.0,
+              enableInfiniteScroll: true,
+              autoPlay: true,
             ),
+            items: [
+              AssetImage('images/image1.png'),
+              AssetImage('images/image2.png'),
+              AssetImage('images/image3.png'),
+            ].map((image) {
+              return Builder(
+                builder: (BuildContext context) {
+                  return Container(
+                    width: MediaQuery.of(context).size.width,
+                    margin: EdgeInsets.symmetric(horizontal: 5.0),
+                    decoration: BoxDecoration(
+                      color: Colors.grey,
+                    ),
+                    child: Image(
+                      image: image,
+                      fit: BoxFit.cover,
+                    ),
+                  );
+                },
+              );
+            }).toList(),
+          ),
+          SizedBox(height: 20),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _restaurantsStream,
+              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                }
 
-            BottomNavigationBarItem(
-              icon: Icon(Icons.directions_car_rounded, size: 35), // Car icon
-              label: 'Ride', // Label text
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return CircularProgressIndicator();
+                }
+
+                final restaurants = snapshot.data!.docs;
+
+                return ListView.builder(
+                  itemCount: restaurants.length,
+                  itemBuilder: (context, index) {
+                    final restaurant = restaurants[index];
+                    final data = restaurant.data() as Map<String, dynamic>;
+                    final imageUrl = '${data['link']}';
+
+                    return Card(
+                      child: ListTile(
+                        contentPadding: EdgeInsets.all(16.0),
+                        title: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(data['name']),
+                            Text(data['address']),
+                          ],
+                        ),
+                        leading: Image.network(
+                          imageUrl,
+                          width: 80.0,
+                          height: 80.0,
+                          fit: BoxFit.cover,
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MenuPage(
+                                storeId: restaurant.id,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                );
+              },
             ),
-
-
-            BottomNavigationBarItem(
-              icon: _isLoggedIn
-                  ? Icon(Icons.person, size: 35) // Display user icon if logged in
-                  : Icon(Icons.login, size: 35), // Display login icon if not logged in
-              label: _isLoggedIn ? 'Accaunt' : 'Login', // Label text
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
