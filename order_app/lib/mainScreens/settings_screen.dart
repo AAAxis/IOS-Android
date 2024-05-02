@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:order_app/authentication/auth_screen.dart';
 import 'package:order_app/global/global.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:order_app/widgets/navigation_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MySettings extends StatefulWidget {
@@ -60,15 +61,35 @@ class _MySettingsState extends State<MySettings> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('My Profile'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (c) => NavigationPage()),
+            );
+          },
+        ),
+      ),
       body: ListView(
         children: [
-          SizedBox(height: 22.0),
-          Image.asset(
-            "images/image.png",
-            width: 400.0,
-            height: 250.0,
+          Container(
+            width: 180,
+            height: 180,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              image: DecorationImage(
+                fit: BoxFit.cover,
+                image: NetworkImage(
+                    'https://img.freepik.com/free-vector/businessman-character-avatar-isolated_24877-60111.jpg'),
+              ),
+            ),
           ),
           SizedBox(height: 20),
+
           ListTile(
             leading: const Icon(Icons.email, color: Colors.black),
             title: Text(
@@ -243,17 +264,6 @@ class _MySettingsState extends State<MySettings> {
             ),
           ),
 
-
-          ListTile(
-            leading: const Icon(Icons.exit_to_app, color: Colors.black),
-            title: const Text(
-              "Sign Out",
-              style: TextStyle(color: Colors.black),
-            ),
-            onTap: () {
-              signOutAndClearPrefs(context);
-            },
-          ),
 
 
 

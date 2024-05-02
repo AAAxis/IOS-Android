@@ -92,6 +92,14 @@ class _HomeScreenState extends State<HomeScreen> {
             }).toList(),
           ),
           SizedBox(height: 20),
+          Text(
+            "Picked for You",
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 10),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: _restaurantsStream,

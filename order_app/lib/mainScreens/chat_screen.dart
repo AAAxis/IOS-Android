@@ -1,22 +1,10 @@
-import 'package:order_app/mainScreens/chat_room.dart';
 import 'package:flutter/material.dart';
-import 'package:maps_launcher/maps_launcher.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:order_app/widgets/navigation_bar.dart';
 
-void main() {
-  runApp(MyApp());
-}
+import '../global/global.dart';
+import 'chat_room.dart';
 
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: ChatScreen(),
-    );
-  }
-}
 
 class ChatScreen extends StatefulWidget {
   @override
@@ -25,147 +13,131 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController messageController = TextEditingController();
-  String selectedChatRoom = '';
-  String userPhone = ''; // Store the user's phone number
-  List<Map<String, dynamic>> chatRooms = [];
+  String userEmail = ''; // Store the user's UID
+  List<Map<String, dynamic>> orders = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    fetchChats();
+    getUserUid(); // Call method to get user's UID
   }
 
-  Widget _buildIconForStatus(String status) {
-    switch (status) {
-      case 'assigned':
-        return Icon(Icons.store);
-      case 'done':
-        return Icon(Icons.check);
-      default:
-        return Icon(Icons.error); // Return a default icon or handle other cases as needed
+  void getUserUid() async {
+    // Get the current user's UID
+    String user = sharedPreferences!.getString("email") ?? "No Email";
+    if (user != null) {
+      setState(() {
+        userEmail = user;
+      });
+      fetchOrders(); // Call method to fetch orders after getting UID
     }
   }
 
-  Future<void> fetchChats() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String userQuery = prefs.getString("email") ?? "";
-    final apiUrl = 'https://polskoydm.pythonanywhere.com/history?email=$userQuery';
-
-    print('Fetching data from API. URL: $apiUrl');
-
+  void fetchOrders() async {
     try {
-      final response = await http.get(Uri.parse(apiUrl));
+      QuerySnapshot ordersSnapshot = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('email', isEqualTo: userEmail)
+          .where('status', whereIn: ['paid', 'completed', 'assigned', 'picked up'])  // Add this line for filtering
+          .get();
 
-      print('API Response: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-
-        if (data.isNotEmpty) {
-          setState(() {
-            chatRooms = List<Map<String, dynamic>>.from(data.map((chatData) {
-              String chatId = chatData['id'];
-
-              // Create a map for the chat room, including driver and user names
-              Map<String, dynamic> chatRoom = {
-                'roomName': chatId,
-                'lastMessage': "Order status",
-                'userName': chatData['name'],
-                'userPhone': chatData['user_phone'],
-                'userTotal': chatData['total'].toString(),
-                'driverPhone': chatData['driver_phone'],
-                'userCart': chatData['cart'],
-                'storeName': chatData['store_name'],
-                'userAddress': chatData['address'],
-                'startPoint': chatData['start_point'],
-                'status': chatData['status'],
-              };
-
-              return chatRoom;
-            }).where((chatRoom) =>
-            chatRoom != null)); // Filter out null chat rooms
-          });
-        } else {
-          // Handle the case where no chat data is available
-          print('No chat data available.');
-        }
-      } else {
-        // Handle API request error
-        print('API Request Error: ${response.body}');
-      }
-    } catch (error) {
-      // Handle API request error
-      print('API Request Error: $error');
+      setState(() {
+        _isLoading = false;
+        // Convert each document snapshot to a map and add to orders list
+        orders = ordersSnapshot.docs.map((doc) {
+          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+          // Include the document ID in the order map
+          data['id'] = doc.id;
+          return data;
+        }).toList();
+      });
+    } catch (e) {
+      print('Error fetching orders: $e');
     }
   }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('My Chats'), // Change this to your desired title
+        title: Text('History'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (c) => NavigationPage()),
+            );
+          },
+        ),
       ),
-      body: Column(
-        children: [
+      body: _isLoading
+          ? Center(
+        child: CircularProgressIndicator(),
+      )
+          : orders.isEmpty
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'No orders assigned.',
+              style: TextStyle(fontSize: 18),
+            ),
+          ],
+        ),
+      )
+          : Padding(
+        padding: const EdgeInsets.only(top: 16.0), // Add padding to the top
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Container(
+                height: MediaQuery.of(context).size.height,
+                child: ListView.builder(
+                  itemCount: orders.length,
+                  itemBuilder: (context, index) {
+                    Map<String, dynamic> order = orders[index];
+                    String orderId = order['id']; // Retrieve the document ID
 
-          Expanded(
-            child: Container(
-              height: MediaQuery.of(context).size.height,
-              child: chatRooms.isEmpty
-                  ? Center(
-                child: Text(
-                  'No chat available',
-                  style: TextStyle(fontSize: 20.0),
-                ),
-              )
-                  : ListView.builder(
-                itemCount: chatRooms.length,
-                itemBuilder: (context, index) {
-                  Map<String, dynamic> chatRoom = chatRooms[index];
-                  return Card(
-                    elevation: 2.0,
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage: NetworkImage('https://i.pinimg.com/564x/ba/fd/69/bafd6939587fc13452f170cae8dc3ad8.jpg'),
-                      ),
-                      title: Text(chatRoom['userName']),
-                      subtitle: Text(chatRoom['lastMessage'] + " " + chatRoom['storeName']),
-                      trailing: GestureDetector(
+                    return Card(
+                      elevation: 2.0,
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          // You can customize the avatar as per your design
+                          child: Icon(Icons.person),
+                          backgroundColor: Colors.black26, // Example color
+                        ),
+                        title: Text(order['name']),
+                        subtitle: Text(orderId),
                         onTap: () {
-                          switch (chatRoom['status'].toLowerCase()) {
-                            case 'assigned':
-                              MapsLauncher.launchQuery(chatRoom['startPoint']);
-                              break;
-                            case 'done':
-                            // Handle the "done" status action here or leave it empty
-                              break;
-                            default:
-                              break;
-                          }
+                          showModalBottomSheet(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return Container(
+                                height: MediaQuery.of(context).size.height * 0.8,
+                                child: ChatRoomScreen(
+                                  chatRoom: order,
+                                  orderId: orderId, // Pass the document ID to ChatRoomScreen
+                                ),
+                              );
+                            },
+                          );
                         },
-                        child: chatRoom['status'].toLowerCase() == 'done'
-                            ? Icon(Icons.done, color: Colors.green)
-                            : _buildIconForStatus(chatRoom['status'].toLowerCase()),
                       ),
-                      onTap: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          builder: (BuildContext context) {
-                            return Container(
-                              height: MediaQuery.of(context).size.height * 0.7,
-                              child: ChatRoomScreen(chatRoom: chatRoom),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+
 }

@@ -1,5 +1,6 @@
 import 'package:order_app/authentication/auth_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:order_app/mainScreens/account.dart';
 import 'package:order_app/mainScreens/home_screen.dart';
 import 'package:order_app/mainScreens/map_screen.dart';
 import 'package:order_app/mainScreens/settings_screen.dart';
@@ -17,7 +18,7 @@ class _NavigationPageState extends State<NavigationPage> {
   final List<Widget> _screens = [
     HomeScreen(),
     MapScreen(), // Add MapScreen here
-    MySettings(),
+    AccountPage(),
   ];
 
   @override
@@ -75,7 +76,7 @@ class _NavigationPageState extends State<NavigationPage> {
               icon: _isLoggedIn
                   ? Icon(Icons.person, size: 35) // Display user icon if logged in
                   : Icon(Icons.login, size: 35), // Display login icon if not logged in
-              label: _isLoggedIn ? 'Accaunt' : 'Login', // Label text
+              label: _isLoggedIn ? 'Account' : 'Login', // Label text
             ),
           ],
         ),
