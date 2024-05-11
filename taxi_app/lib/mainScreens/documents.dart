@@ -1,12 +1,13 @@
-import 'dart:io';
-
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:taxi_app/rental.dart';
 
 class DriverLicenseScreen extends StatefulWidget {
   @override
@@ -29,6 +30,21 @@ class _DriverLicenseScreenState extends State<DriverLicenseScreen> {
     super.dispose();
   }
 
+  Future<void> _signIn() async {
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: "polskoydm@outlook.com",
+        password: "passwordless",
+      );
+      // User signed in successfully, now you can proceed with document upload
+      await _uploadImage();
+    } catch (error) {
+      // Handle authentication errors
+      print("Error signing in: $error");
+    }
+  }
+
+
   Future<void> _uploadImage() async {
     setState(() {
       _uploading = true;
@@ -36,7 +52,7 @@ class _DriverLicenseScreenState extends State<DriverLicenseScreen> {
 
     FirebaseStorage storage = FirebaseStorage.instance;
     String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-    Reference reference = storage.ref().child('images/$fileName');
+    Reference reference = storage.ref().child('driver_license/$fileName');
     UploadTask uploadTask = reference.putFile(_imageFile!);
 
     try {
@@ -92,8 +108,11 @@ class _DriverLicenseScreenState extends State<DriverLicenseScreen> {
       'name': nameController.text,
       'dob': dobController.text,
       'image_url': _uploadedFileURL!,
-      'user_email': userEmail,
     });
+
+    // Store the mobile number to SharedPreferences
+    await _storeMobileNumber(numberController.text);
+
     // Clear controllers and image after saving
     numberController.clear();
     nameController.clear();
@@ -103,8 +122,16 @@ class _DriverLicenseScreenState extends State<DriverLicenseScreen> {
       _uploading = false;
     });
 
-    // Navigate back to the previous screen
-    Navigator.of(context).pop();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => RentalScreen()),
+    );
+  }
+
+  Future<void> _storeMobileNumber(String number) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString('phone', '$number');
   }
 
   @override
@@ -143,14 +170,16 @@ class _DriverLicenseScreenState extends State<DriverLicenseScreen> {
                 TextField(
                   controller: numberController,
                   decoration: InputDecoration(
-                    labelText: 'Number',
-                    prefixIcon: Icon(Icons.credit_card),
+                    labelText: 'Mobile Phone',
+                    prefixIcon: Icon(Icons.mobile_friendly),
                   ),
+                  keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
                     LengthLimitingTextInputFormatter(10),
                   ],
                 ),
+
                 TextField(
                   controller: nameController,
                   decoration: InputDecoration(
@@ -188,7 +217,7 @@ class _DriverLicenseScreenState extends State<DriverLicenseScreen> {
                       ? null
                       : () async {
                     if (_imageFile != null) {
-                      await _uploadImage();
+                      await _signIn();
                       await _saveData(); // Call _saveData() here
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -209,8 +238,3 @@ class _DriverLicenseScreenState extends State<DriverLicenseScreen> {
   }
 }
 
-void main() {
-  runApp(MaterialApp(
-    home: DriverLicenseScreen(),
-  ));
-}

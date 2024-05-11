@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,90 +9,55 @@ class EditBankScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text('Edit Bank Information'),
       ),
-      body: BankInfoList(),
+      body: BankInfoForm(),
     );
   }
 }
 
-class BankInfoList extends StatelessWidget {
+class BankInfoForm extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _getBankInfoStream(context),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return CircularProgressIndicator();
-        }
-        if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return AddNewBankInfo();
-        }
-        return ListView.builder(
-          itemCount: snapshot.data?.docs.length,
-          itemBuilder: (context, index) {
-            var doc = snapshot.data?.docs[index];
-            return ListTile(
-              title: Text(doc?['bankName']),
-              subtitle: Text(doc?['transitNumber'] + ', ' + doc?['branch']),
-              trailing: IconButton(
-                icon: Icon(Icons.delete),
-                onPressed: () => _deleteBankInfo(context, doc!.id),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Stream<QuerySnapshot> _getBankInfoStream(BuildContext context) async* {
-    try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? uid = prefs.getString('uid');
-
-      if (uid != null) {
-        yield* FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .collection('bank')
-            .snapshots();
-      }
-    } catch (e) {
-      print('Error getting bank information stream: $e');
-      // Handle error as needed
-    }
-  }
-
-  void _deleteBankInfo(BuildContext context, String docId) async {
-    try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? uid = prefs.getString('uid');
-
-      if (uid != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .collection('bank')
-            .doc(docId)
-            .delete();
-        print('Bank information deleted from Firebase');
-      } else {
-        print('User UID not found in shared preferences.');
-      }
-    } catch (e) {
-      print('Error deleting bank information: $e');
-      // Handle error as needed
-    }
-  }
-
+  _BankInfoFormState createState() => _BankInfoFormState();
 }
 
-class AddNewBankInfo extends StatelessWidget {
+class _BankInfoFormState extends State<BankInfoForm> {
   final TextEditingController _bankNameController = TextEditingController();
-  final TextEditingController _transitNumberController = TextEditingController();
+  final TextEditingController _transitNumberController =
+  TextEditingController();
   final TextEditingController _branchController = TextEditingController();
+
+  bool dataExists = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBankInfo();
+  }
+
+  void _loadBankInfo() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? uid = prefs.getString('uid');
+
+      if (uid != null) {
+        QuerySnapshot snapshot = await FirebaseFirestore.instance
+            .collection('contractors')
+            .doc(uid)
+            .collection('bank')
+            .get();
+
+        if (snapshot.docs.isNotEmpty) {
+          setState(() {
+            dataExists = true;
+            _bankNameController.text = snapshot.docs[0]['bankName'];
+            _transitNumberController.text = snapshot.docs[0]['transitNumber'];
+            _branchController.text = snapshot.docs[0]['branch'];
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading bank information: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,6 +68,7 @@ class AddNewBankInfo extends StatelessWidget {
         children: [
           TextFormField(
             controller: _bankNameController,
+            readOnly: _bankNameController.text.isNotEmpty,
             decoration: InputDecoration(
               labelText: 'Bank Name',
               prefixIcon: Icon(Icons.account_balance),
@@ -113,6 +78,7 @@ class AddNewBankInfo extends StatelessWidget {
           TextFormField(
             controller: _transitNumberController,
             keyboardType: TextInputType.number,
+            readOnly: _transitNumberController.text.isNotEmpty,
             decoration: InputDecoration(
               labelText: 'Transit Number',
               prefixIcon: Icon(Icons.format_list_numbered),
@@ -121,6 +87,7 @@ class AddNewBankInfo extends StatelessWidget {
           SizedBox(height: 20),
           TextFormField(
             controller: _branchController,
+            readOnly: _branchController.text.isNotEmpty,
             decoration: InputDecoration(
               labelText: 'Branch',
               prefixIcon: Icon(Icons.location_on),
@@ -129,21 +96,25 @@ class AddNewBankInfo extends StatelessWidget {
           SizedBox(height: 20),
           ElevatedButton(
             onPressed: () {
-              _saveBankInfo(context);
+              if (dataExists) {
+                _deleteBankInfo();
+              } else {
+                _saveBankInfo();
+              }
             },
             style: ButtonStyle(
               side: MaterialStateProperty.all(BorderSide(color: Colors.black)),
               backgroundColor: MaterialStateProperty.all(Colors.white),
               elevation: MaterialStateProperty.all(0), // Remove elevation
             ),
-            child: Text('Save', style: TextStyle(color: Colors.black)),
+            child: Text(dataExists ? 'Delete' : 'Save', style: TextStyle(color: Colors.black)),
           ),
         ],
       ),
     );
   }
 
-  void _saveBankInfo(BuildContext context) async {
+  void _saveBankInfo() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? uid = prefs.getString('uid');
@@ -157,31 +128,71 @@ class AddNewBankInfo extends StatelessWidget {
       String transitNumber = _transitNumberController.text;
       String branch = _branchController.text;
 
-      // Reference to the 'banks' subcollection under the user document
       CollectionReference userBankCollection = FirebaseFirestore.instance
-          .collection('users')
+          .collection('contractors')
           .doc(uid)
           .collection('bank');
 
-      // Add bank information to the 'bank' subcollection under the user document
       await userBankCollection.add({
         'bankName': bankName,
         'transitNumber': transitNumber,
         'branch': branch,
-        // Add more fields if needed
       });
 
-      // Clear text fields after saving
-      _bankNameController.clear();
-      _transitNumberController.clear();
-      _branchController.clear();
+      print(
+          'Bank information saved to user\'s bank collection in Firestore');
 
-      // Show success message or navigate to another screen
-      // For now, let's print a success message
-      print('Bank information saved to user\'s bank collection in Firestore');
+      setState(() {
+        dataExists = true;
+      });
     } catch (e) {
       print('Error saving bank information: $e');
-      // Handle error as needed
+    }
+  }
+  void _deleteBankInfo() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? uid = prefs.getString('uid');
+
+      if (uid != null) {
+        QuerySnapshot snapshot = await FirebaseFirestore.instance
+            .collection('contractors')
+            .doc(uid)
+            .collection('bank')
+            .get();
+
+        if (snapshot.docs.isNotEmpty) {
+          if (snapshot.docs.length == 1) {
+            // If it's the last document, delete the entire collection
+            await FirebaseFirestore.instance
+                .collection('contractors')
+                .doc(uid)
+                .collection('bank')
+                .doc(snapshot.docs[0].id)
+                .delete();
+            print('Bank information collection deleted from Firestore');
+          } else {
+            // If not the last document, delete the specific document
+            await FirebaseFirestore.instance
+                .collection('contractors')
+                .doc(uid)
+                .collection('bank')
+                .doc(snapshot.docs[0].id)
+                .delete();
+            print('Bank information deleted from Firestore');
+          }
+
+          // Clear text fields
+          setState(() {
+            _bankNameController.clear();
+            _transitNumberController.clear();
+            _branchController.clear();
+            dataExists = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error deleting bank information: $e');
     }
   }
 

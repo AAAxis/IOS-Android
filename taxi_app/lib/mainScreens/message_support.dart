@@ -27,7 +27,7 @@ class _SendMessagePageState extends State<SendMessagePage> {
   Future<void> _deleteMessage(String messageId) async {
     try {
       await FirebaseFirestore.instance
-          .collection('users')
+          .collection('contractors')
           .doc(_chatRoomId)
           .collection('messages')
           .doc(messageId)
@@ -90,7 +90,7 @@ class _SendMessagePageState extends State<SendMessagePage> {
             Expanded(
               child: StreamBuilder(
                 stream: FirebaseFirestore.instance
-                    .collection('users')
+                    .collection('contractors')
                     .doc(_chatRoomId)
                     .collection('messages')
                     .orderBy('timestamp', descending: true)
@@ -162,7 +162,7 @@ class _SendMessagePageState extends State<SendMessagePage> {
                       String text = _messageController.text.trim();
                       if (text.isNotEmpty) {
                         FirebaseFirestore.instance
-                            .collection('users')
+                            .collection('contractors')
                             .doc(_chatRoomId)
                             .collection('messages')
                             .add({

@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 
 import '../global/global.dart';
@@ -24,7 +22,7 @@ class _FirstPageState extends State<FirstPage> {
 
     String storedName = sharedPreferences!.getString("name") ?? "";
     _nameController.text = storedName == "Add Full Name" ? "" : storedName;
-    _phoneController.text = '';
+    _phoneController.text = '+972';
     _addressController.text = 'Tel Aviv';
 
     _nameController.addListener(_validateInputs);
@@ -54,10 +52,11 @@ class _FirstPageState extends State<FirstPage> {
   }
 
   bool _validatePhone(String text) {
-    String phonePattern = r'^\+[1-9]\d{10}$';
+    String phonePattern = r'^\+?\d{1,3}?\d{9,12}$'; // Updated pattern for international phone numbers
     RegExp regExp = RegExp(phonePattern);
     return regExp.hasMatch(text);
   }
+
 
 
   void updateName(String newName) {
@@ -65,7 +64,6 @@ class _FirstPageState extends State<FirstPage> {
       sharedPreferences!.setString("name", newName);
     });
   }
-
 
   void updateAddress(String newAddress) {
     setState(() {
@@ -86,24 +84,26 @@ class _FirstPageState extends State<FirstPage> {
     final employmentType = 'contractor';
     final city = _addressController.text.trim();
 
-
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => Navigation()),
     );
 
-
-
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       final userDocRef = FirebaseFirestore.instance
-          .collection('users')
+          .collection('contractors')
           .doc(user.uid);
       await userDocRef.update({'name': name, 'phone': phone, 'address': city});
       updateName(name);
       updateAddress(city);
-      updatePhone(phone);
+      updatePhone(phone); // Update the phone number
     }
+
+    // Update shared preferences
+    sharedPreferences!.setString("name", name);
+    sharedPreferences!.setString("address", city);
+    sharedPreferences!.setString("phone", phone);
 
     final data = {
       'email': email,
@@ -114,22 +114,6 @@ class _FirstPageState extends State<FirstPage> {
     };
 
     print('Sending data: $data');
-
-    try {
-      final response = await http.post(
-        Uri.parse('https://polskoydm.pythonanywhere.com/generate-pdf-and-send-email'),
-        body: json.encode(data),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      print('Response: ${response.body}');
-
-
-
-    } catch (e) {
-      print('Error: $e');
-      throw Exception('Failed to send registration data: $e');
-    }
   }
 
   @override
@@ -147,19 +131,17 @@ class _FirstPageState extends State<FirstPage> {
             child: TextField(
               controller: _nameController,
               decoration: InputDecoration(
-                labelText: 'Full Name',
+                labelText: 'Business Name',
                 prefixIcon: Icon(Icons.person),
               ),
             ),
           ),
           SizedBox(height: 20.0),
-          Center(
-            child: TextField(
-              controller: _phoneController,
-              decoration: InputDecoration(
-                labelText: 'Phone Number',
-                prefixIcon: Icon(Icons.phone),
-              ),
+          TextField(
+            controller: _phoneController,
+            decoration: InputDecoration(
+              labelText: 'Phone Number',
+              prefixIcon: Icon(Icons.phone),
             ),
           ),
           SizedBox(height: 20.0),

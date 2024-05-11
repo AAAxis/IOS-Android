@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../global/global.dart';
@@ -131,7 +130,7 @@ class SlotRow extends StatelessWidget {
 
       if (uid != null) {
         // Construct the path to the subcollection
-        String subcollectionPath = 'users/$uid/slot';
+        String subcollectionPath = 'contractors/$uid/slot';
 
         // Add the schedule to the subcollection
         await FirebaseFirestore.instance.collection(subcollectionPath).add(data);
@@ -170,7 +169,7 @@ class SavedScheduleList extends StatelessWidget {
         String uid = snapshot.data!;
 
         return StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('users/$uid/slot').snapshots(),
+          stream: FirebaseFirestore.instance.collection('contractors/$uid/slot').snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator());
@@ -246,7 +245,7 @@ class SavedScheduleRow extends StatelessWidget {
 
       if (uid != null) {
         // Construct the path to the document in the subcollection
-        String documentPath = 'users/$uid/slot/$docId';
+        String documentPath = 'contractors/$uid/slot/$docId';
 
         // Delete the document
         await FirebaseFirestore.instance.doc(documentPath).delete();

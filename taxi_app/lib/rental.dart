@@ -1,12 +1,8 @@
-import 'dart:convert';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; // Import http package
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:taxi_app/mainScreens/documents.dart';
-import 'package:taxi_app/mainScreens/home_screen.dart';
-import 'package:taxi_app/mainScreens/navigation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class RentalScreen extends StatefulWidget {
@@ -20,23 +16,30 @@ String? _selectedVehicleType = 'Honda PCX 2023'; // New field for vehicle type
 bool _termsAndConditionsAccepted = false;
 User? user = FirebaseAuth.instance.currentUser;
 
-
 // Function to launch the URL
 void _launchURL(String url) async {
-  if (await launch(url)) {
-    await launch(url);
-  } else {
-    throw 'Could not launch $url';
-  }
+  await launch(url);
 }
 
-
 class _RentalScreenState extends State<RentalScreen> {
+  late Stream<QuerySnapshot> _rentalsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize stream to listen for changes in user's rentals
+    _rentalsStream = FirebaseFirestore.instance
+        .collection('contractors')
+        .doc(user!.uid)
+        .collection('rentals')
+        .snapshots();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Rental Motorcycle'),
+        title: Text('Rental Options'),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -45,96 +48,61 @@ class _RentalScreenState extends State<RentalScreen> {
             'images/moto.png',
             fit: BoxFit.cover,
             height: 300.0,
-            width: MediaQuery.of(context).size.width, // Ensure image takes full width
+            width: MediaQuery.of(context).size.width,
           ),
-        // Assuming you have access to FirebaseAuth instance
-
-
-
-          Flexible(
-            child: StreamBuilder(
-              stream: FirebaseFirestore.instance.collection('driver_license')
-                  .where('user_email', isEqualTo: user?.email) // Filter by user's email
-                  .snapshots(),
-              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                }
+          SizedBox(height: 20),
+          _buildStartApplicationButton(), // Call method to build the button
+          SizedBox(height: 20),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _rentalsStream,
+              builder: (BuildContext context,
+                  AsyncSnapshot<QuerySnapshot> snapshot) {
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                if (snapshot.data!.docs.isEmpty) {
                   return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'We collect driver license for our rental service to provide you with the best experience and ensure your safety. Thank you for your cooperation!',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => DriverLicenseScreen()),
-                            );
-                          },
-                          child: Text('Start Application'),
-                        ),
-                        SizedBox(height: 16),
-                      ],
-                    ),
+                    child: Text('Error: ${snapshot.error}'),
                   );
                 }
-                return ListView.builder(
-                  itemCount: snapshot.data!.docs.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    DocumentSnapshot document = snapshot.data!.docs[index];
-                    Map<String, dynamic> data = document.data() as Map<String, dynamic>;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Text(
-                            '    Please select a driver license to continue',
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        ListTile(
-                          onTap: () {
-                            _openBottomSheet();
-                          },
-                          leading: Image.network(
-                            data['image_url'],
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
-                          ),
-                          title: Text('Number: ${data['number']}'),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Name: ${data['name']}'),
-                              Text('DOB: ${data['dob']}'),
-                            ],
-                          ),
-                          trailing: IconButton(
-                            icon: Icon(Icons.delete),
-                            onPressed: () {
-                              _deleteDocument(document.id);
-                            },
-                          ),
-                        ),
-                      ],
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+
+                if (snapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Text('No rentals found.'),
+                  );
+                }
+
+                // Display rentals in a ListView
+                return ListView(
+                  children: snapshot.data!.docs.map((DocumentSnapshot document) {
+                    Map<String, dynamic> rental = document.data() as Map<String, dynamic>;
+                    // Convert 'date' string to DateTime object
+                    DateTime rentalDate = DateTime.parse(rental['date']);
+                    // Format date to display only date without time
+                    String formattedDate = '${rentalDate.day}/${rentalDate.month}/${rentalDate.year}';
+                    return ListTile(
+                      leading: Image.asset(
+                        'images/honda.png', // Replace 'your_fixed_image.jpg' with your actual image path
+                        width: 80, // Adjust width as needed
+                        height: 50, // Adjust height as needed
+                        fit: BoxFit.cover, // Adjust fit as needed
+                      ),
+                      title: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(rental['type']),
+                          Text('Location: ${rental['location']}'),
+                        ],
+                      ),
+                      subtitle: Text('Date: $formattedDate'),
                     );
-                  },
+                  }).toList(),
                 );
+
               },
             ),
           ),
@@ -142,6 +110,46 @@ class _RentalScreenState extends State<RentalScreen> {
       ),
     );
   }
+
+  Widget _buildStartApplicationButton() {
+    if (_rentalsStream != null) {
+      return StreamBuilder<QuerySnapshot>(
+        stream: _rentalsStream,
+        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+          if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+            // If there are existing rentals, hide the button
+            return SizedBox.shrink(); // Return an empty SizedBox to hide
+          } else {
+            // If there are no existing rentals, show the button
+            return Center(
+              child: OutlinedButton(
+                onPressed: _openBottomSheet,
+                style: OutlinedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                  textStyle: TextStyle(fontSize: 14),
+                ),
+                child: Text('Start Application'),
+              ),
+            );
+          }
+        },
+      );
+    } else {
+      // Default behavior, show the button
+      return Center(
+        child: OutlinedButton(
+          onPressed: _openBottomSheet,
+          style: OutlinedButton.styleFrom(
+            padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+            textStyle: TextStyle(fontSize: 14),
+          ),
+          child: Text('Start Application'),
+        ),
+      );
+    }
+  }
+
+  // Other methods remain unchanged
 
   void _openBottomSheet() {
     showModalBottomSheet(
@@ -173,7 +181,7 @@ class _RentalScreenState extends State<RentalScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Reservation',
+                          'Check Availability',
                           style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.bold,
@@ -221,7 +229,7 @@ class _RentalScreenState extends State<RentalScreen> {
                       child: InputDecorator(
                         decoration: InputDecoration(
                           labelText: 'Vehicle Type:',
-                          suffixIcon: Icon(Icons.directions_bike), // You can change the icon accordingly
+                          suffixIcon: Icon(Icons.directions_bike),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
@@ -260,7 +268,8 @@ class _RentalScreenState extends State<RentalScreen> {
                               firstDate: DateTime.now(),
                               lastDate: DateTime(DateTime.now().year + 1),
                             );
-                            if (pickedDate != null && pickedDate != _selectedDate) {
+                            if (pickedDate != null &&
+                                pickedDate != _selectedDate) {
                               setState(() {
                                 _selectedDate = pickedDate;
                               });
@@ -268,7 +277,7 @@ class _RentalScreenState extends State<RentalScreen> {
                           },
                           decoration: InputDecoration(
                             hintText: '${_selectedDate?.toLocal()}'.split(' ')[0],
-                            border: InputBorder.none, // Remove the border
+                            border: InputBorder.none,
                             suffixIcon: Icon(Icons.calendar_today),
                           ),
                         ),
@@ -306,35 +315,42 @@ class _RentalScreenState extends State<RentalScreen> {
                                   ),
                                   recognizer: TapGestureRecognizer()
                                     ..onTap = () {
-                                      _launchURL('https://theholylabs.com/privacy'); // Replace the URL with your terms and conditions URL
+                                      _launchURL('https://theholylabs.com/privacy');
                                     },
                                 ),
                               ],
                             ),
                           ),
                         ),
-
                       ],
                     ),
                     SizedBox(height: 16.0),
                     ElevatedButton(
                       onPressed: () {
+                        // Close the bottom sheet
+                        Navigator.pop(context);
+
                         if (_selectedLocation != null &&
                             _selectedDate != null &&
                             _termsAndConditionsAccepted) {
-                          _submitData(); // Call function to submit data
+                          _submitData(context);
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Please select location, date, and verify age.'),
+                              content: Text(
+                                'Please select location, date, and verify terms and conditions.',
+                              ),
                             ),
                           );
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black, // Change button color to black
+                        backgroundColor: Colors.black,
                       ),
-                      child: Text('Apply', style: TextStyle(color: Colors.white)), // Change text color to white
+                      child: Text(
+                        'Apply',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ],
                 ),
@@ -346,63 +362,41 @@ class _RentalScreenState extends State<RentalScreen> {
     );
   }
 
-  void _submitData() async {
+  void _submitData(BuildContext context) async {
     try {
-      // Get the current user's email from Firebase Auth
-      User? user = FirebaseAuth.instance.currentUser;
-      String? email = user?.email;
-
       // Check if the user is signed in
-      if (email != null) {
-        // Formulate your API request payload here
-        Map<String, dynamic> requestData = {
-          'email': email,
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // Formulate your rental data
+        Map<String, dynamic> rentalData = {
           'type': _selectedVehicleType,
           'location': _selectedLocation,
           'date': _selectedDate?.toIso8601String(),
           // Add other data fields as needed
         };
 
-        // Perform the API request
-        var response = await http.post(
-          Uri.parse('https://polskoydm.pythonanywhere.com/rental'),
-          body: jsonEncode(requestData),
-          headers: {'Content-Type': 'application/json'},
+        // Access Firestore instance and add rental data to user's subcollection
+        await FirebaseFirestore.instance
+            .collection('contractors')
+            .doc(user.uid)
+            .collection('rentals')
+            .add(rentalData);
+
+        print('Rental data submitted to Firestore');
+
+
+        // Display a snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Application submitted successfully!'),
+          ),
         );
-
-        // Check response status
-        if (response.statusCode == 200) {
-          // Request successful, handle response data here
-          print('API Request Successful');
-          print('Response: ${response.body}');
-          Navigator.pop(context);
-
-          // You can also navigate or show a success message here
-        } else {
-          // Request failed, handle error
-          print('API Request Failed');
-          print('Response Code: ${response.statusCode}');
-          print('Response Body: ${response.body}');
-
-          // Handle error accordingly, e.g., show a snackbar
-        }
       } else {
         // User is not signed in, handle accordingly
         print('User is not signed in');
-        // You may want to navigate the user to sign in or show an error message
       }
     } catch (e) {
-      print('Error submitting data: $e');
-      // Handle error accordingly, e.g., show a snackbar
-    }
-  }
-
-  Future<void> _deleteDocument(String documentId) async {
-    try {
-      await FirebaseFirestore.instance.collection('driver_license').doc(documentId).delete();
-    } catch (e) {
-      print('Error deleting document: $e');
-      // Handle error accordingly, e.g., show a snackbar
+      print('Error submitting data to Firestore: $e');
     }
   }
 }

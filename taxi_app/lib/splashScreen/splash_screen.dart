@@ -3,11 +3,9 @@ import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:taxi_app/authentication/auth_screen.dart';// import your authentication screen
-import 'package:taxi_app/mainScreens/home_screen.dart';
+import 'package:taxi_app/invoice.dart';
 import 'package:taxi_app/mainScreens/navigation.dart';
 
-import '../global/global.dart';
 
 class MySplashScreen extends StatefulWidget {
   const MySplashScreen({Key? key}) : super(key: key);
@@ -43,29 +41,25 @@ class _MySplashScreenState extends State<MySplashScreen> {
 
   void _checkCurrentUser() {
     Timer(Duration(seconds: 3), () async {
-      String userStatus = sharedPreferences!.getString("status") ?? "Disabled"; // Retrieve user status from SharedPreferences
+      // Check if the user is authenticated
+      User? user = FirebaseAuth.instance.currentUser;
 
-      // Navigate to ContractorScreen or SelfEmployedScreen based on status
-      if (userStatus == 'contractor') {
+      if (user != null) {
+        // User is authenticated, navigate to the main screen
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => Navigation()),
         );
-      } else if (userStatus == 'self-employed') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => MyHomePage()),
-        );
       } else {
-        await _requestPermissionManually();
-        // Handle other cases, for example, navigate to an authentication screen
+        // User is not authenticated, navigate to the login screen
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => MergedLoginScreen()),
+          MaterialPageRoute(builder: (context) => InvoiceGenerator()),
         );
       }
     });
   }
+
 
   @override
   Widget build(BuildContext context) {

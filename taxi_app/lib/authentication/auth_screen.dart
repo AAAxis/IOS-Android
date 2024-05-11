@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,261 +5,37 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:taxi_app/authentication/registration.dart';
-import 'package:taxi_app/mainScreens/home_screen.dart';
+import 'package:taxi_app/authentication/add_data.dart';
+import 'package:taxi_app/authentication/email_login.dart';
 import 'package:taxi_app/mainScreens/navigation.dart';
 import 'package:the_apple_sign_in/the_apple_sign_in.dart';
-import 'package:http/http.dart' as http;
 import '../global/global.dart';
-import '../widgets/error_dialog.dart';
 
 final FirebaseAuth _auth = FirebaseAuth.instance;
 final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
 
-class MergedLoginScreen extends StatefulWidget {
-  const MergedLoginScreen({Key? key}) : super(key: key);
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({Key? key}) : super(key: key);
 
   @override
-  _MergedLoginScreenState createState() => _MergedLoginScreenState();
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _MergedLoginScreenState extends State<MergedLoginScreen> {
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController codeController = TextEditingController();
-
-  bool _isEmailSent = false;
-  String? verificationCode;
+class _LoginScreenState extends State<LoginScreen> {
 
 
-  Future<void> sendEmail() async {
-    final email = emailController.text.trim();
-
-    if (email.isEmpty || !isValidEmail(email)) {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text('Invalid Email'),
-            content: Text('Please enter a valid email address.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-      return;
-    }
-
-    try {
-      final response = await http.get(
-        Uri.parse(
-            'https://polskoydm.pythonanywhere.com/global_auth?email=$email'),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        setState(() {
-          _isEmailSent = true;
-          verificationCode = data['verification_code'];
-        });
-      } else {
-        showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: Text('Failed to Send Email'),
-              content: Text('Unable to send email. Please try again later.'),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: Text('OK'),
-                ),
-              ],
-            );
-          },
-        );
-      }
-    } catch (e) {
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text('Error'),
-            content: Text('An error occurred while sending the email: $e'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-    }
-  }
-
-  bool isValidEmail(String email) {
-    final emailRegex = RegExp(r'^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$');
-    return emailRegex.hasMatch(email);
-  }
-
-
-  void verify() async {
-    final enteredCode = codeController.text;
-    bool trackingPermissionStatus = sharedPreferences!.getBool("tracking") ?? false;
-
-    if (enteredCode == verificationCode) {
-      final email = emailController.text.trim();
-      final password = "passwordless";
-
-      try {
-        UserCredential userCredential;
-
-        // Attempt to create a user account
-        try {
-          userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-            email: email,
-            password: password,
-          );
-
-          String uid = userCredential.user?.uid ?? "";
-          String userEmail = userCredential.user?.email ?? "";
-
-          // Check if the user exists in Firestore
-          DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-              .collection("users")
-              .doc(uid)
-              .get();
-
-          if (!userSnapshot.exists) {
-            // If the user doesn't exist in Firestore, create a new document
-            await FirebaseFirestore.instance.collection("users").doc(uid).set({
-              "uid": uid,
-              "name": "Add Full Name",
-              "status": "disabled",
-              "phone": "Add Phone Number",
-              "address": "Add Delivery City",
-              "email": userEmail,
-              "userAvatarUrl": "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png",
-              "trackingPermission": trackingPermissionStatus,
-            });
-
-            final SharedPreferences prefs = await SharedPreferences.getInstance();
-            prefs.setString("email", userEmail);
-            showDialog(
-              context: context,
-              builder: (context) {
-                return AlertDialog(
-                  title: Text('Verification Successful'),
-                  content: Text('You have successfully verified your email.'),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        // Add your logic to navigate to the next screen or perform other actions
-                        readDataAndSetDataLocally(userCredential.user!);
-                      },
-                      child: Text('OK'),
-                    ),
-                  ],
-                );
-              },
-            );
-          }
-
-
-        } catch (e) {
-          if (e is FirebaseAuthException) {
-            if (e.code == 'email-already-in-use') {
-              // Try to sign in the user with the existing credentials
-              try {
-                userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-                  email: email,
-                  password: password,
-                );
-
-                // Handle a successful sign-in
-                if (userCredential.user != null) {
-
-                  // Continue with your app logic for the authenticated user.
-                  showDialog(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        title: Text('Verification Successful'),
-                        content: Text('You have successfully verified your email.'),
-                        actions: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              // Add your logic to navigate to the next screen or perform other actions
-                              readDataAndSetDataLocally(userCredential.user!);
-                            },
-                            child: Text('OK'),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                }
-              } catch (e) {
-                // Handle the sign-in error here
-                print('Failed to sign in the user: $e');
-              }
-            } else {
-              // Handle other Firebase Authentication errors
-              print('Failed to create a user account: $e');
-            }
-          }
-        }
-      } catch (e) {
-        // Handle errors for Firebase Authentication
-        print('Error: $e');
-      }
-    } else {
-      // Verification failed, show an error dialog
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text('Verification Failed'),
-            content: Text('Invalid verification code. Please try again.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-    }
-  }
 
   Future<void> appleSign() async {
-    AuthorizationResult authorizationResult =
-    await TheAppleSignIn.performRequests([
-      const AppleIdRequest(requestedScopes: [Scope.email, Scope.fullName])
-    ]);
+    try {
+      AuthorizationResult authorizationResult =
+      await TheAppleSignIn.performRequests([
+        const AppleIdRequest(requestedScopes: [Scope.email, Scope.fullName])
+      ]);
 
-    switch (authorizationResult.status) {
-      case AuthorizationStatus.authorized:
-        print("authorized");
-        try {
-          AppleIdCredential? appleCredentials =
-              authorizationResult.credential;
+      switch (authorizationResult.status) {
+        case AuthorizationStatus.authorized:
+          print("authorized");
+          AppleIdCredential? appleCredentials = authorizationResult.credential;
           OAuthProvider oAuthProvider = OAuthProvider("apple.com");
           OAuthCredential oAuthCredential = oAuthProvider.credential(
             idToken: String.fromCharCodes(appleCredentials!.identityToken!),
@@ -268,52 +43,63 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
             String.fromCharCodes(appleCredentials.authorizationCode!),
           );
 
-          UserCredential userCredential = await FirebaseAuth.instance
-              .signInWithCredential(oAuthCredential);
+          UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithCredential(oAuthCredential);
           if (userCredential.user != null) {
-            String uid = userCredential.user?.uid ?? "";
-            String userEmail = userCredential.user?.email ?? "";
+            String uid = userCredential.user!.uid;
+            String userEmail = userCredential.user!.email ?? "";
             bool trackingPermissionStatus =
                 sharedPreferences!.getBool("tracking") ?? false;
 
             DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-                .collection("users")
+                .collection("contractors")
                 .doc(uid)
                 .get();
 
-            if (!userSnapshot.exists) {
+            bool isFirstLogin = !userSnapshot.exists;
+            if (isFirstLogin) {
               await FirebaseFirestore.instance
-                  .collection("users")
+                  .collection("contractors")
                   .doc(uid)
                   .set({
                 "uid": uid,
-                "email": userCredential.user!.email,
+                "email": userEmail,
                 "name": "Add Full Name",
-                "phone": "Add Phone Number",
-                "address": "Add Delivery City",
-                "userAvatarUrl":
-                "https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_1280.png",
-                "status": "disabled",
+                "phone": "Add Phone",
+                "address": "Add Location",
+                "status": "contractor",
                 "trackingPermission": trackingPermissionStatus,
               });
+              // Navigate to Add Data Screen
+              await readDataAndSetDataLocally(userCredential.user!);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => FirstPage()),
+              );
+            } else {
+              // Navigate to Home Page
+              await readDataAndSetDataLocally(userCredential.user!);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => Navigation()),
+              );
             }
 
-            await readDataAndSetDataLocally(userCredential.user!);
-          }
-        } catch (e) {
-          print("Apple auth failed $e");
-        }
 
-        break;
-      case AuthorizationStatus.error:
-        print("error" + authorizationResult.error.toString());
-        break;
-      case AuthorizationStatus.cancelled:
-        print("cancelled");
-        break;
-      default:
-        print("none of the above: default");
-        break;
+          }
+          break;
+        case AuthorizationStatus.error:
+          print("error" + authorizationResult.error.toString());
+          break;
+        case AuthorizationStatus.cancelled:
+          print("cancelled");
+          break;
+        default:
+          print("none of the above: default");
+          break;
+      }
+    } catch (e) {
+      print("Apple auth failed $e");
     }
   }
 
@@ -340,27 +126,40 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
           String userName = user.displayName ?? "";
 
           DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-              .collection("users")
+              .collection("contractors")
               .doc(uid)
               .get();
 
-          if (!userSnapshot.exists) {
+          bool isFirstLogin = !userSnapshot.exists;
+          if (isFirstLogin) {
             bool trackingPermissionStatus =
                 sharedPreferences!.getBool("tracking") ?? false;
 
-            FirebaseFirestore.instance.collection("users").doc(uid).set({
+            FirebaseFirestore.instance.collection("contractors").doc(uid).set({
               "uid": uid,
               "email": userEmail,
               "name": userName,
-              "phone": "Add Phone Number",
-              "address": "Add Delivery City",
-              "userAvatarUrl": userImageUrl,
-              "status": "disabled",
+              "phone": "Add Phone",
+              "address": "Add Location",
+              "status": 'contractor',
               "trackingPermission": trackingPermissionStatus,
             });
+            // Navigate to Add Data Screen
+            readDataAndSetDataLocally(user);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => FirstPage()),
+            );
+          } else {
+            readDataAndSetDataLocally(user);
+            // Navigate to Home Page
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => Navigation()),
+            );
           }
 
-          readDataAndSetDataLocally(user);
+
         }
       }
     } catch (error) {
@@ -370,63 +169,22 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
 
   Future<void> readDataAndSetDataLocally(User currentUser) async {
     await FirebaseFirestore.instance
-        .collection("users")
+        .collection("contractors")
         .doc(currentUser.uid)
         .get()
         .then((snapshot) async {
-      if (snapshot.exists) {
-        String status = snapshot.data()!["status"];
 
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString("uid", currentUser.uid);
+      await prefs.setString("email", snapshot.data()!["email"]);
+      await prefs.setString("name", snapshot.data()!["name"]);
+      await prefs.setString("phone", snapshot.data()!["phone"]);
+      await prefs.setString("address", snapshot.data()!["address"]);
+      await prefs.setString("status", snapshot.data()!["status"]);
 
-
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString("uid", currentUser.uid);
-        await prefs.setString("email", snapshot.data()!["email"]);
-        await prefs.setString("name", snapshot.data()!["name"]);
-        await prefs.setString("phone", snapshot.data()!["phone"]);
-        await prefs.setString("status", snapshot.data()!["status"]);
-        await prefs.setString("address", snapshot.data()!["address"]);
-
-        Navigator.pop(context);
-
-        // Navigate based on status
-        switch (status) {
-          case "disabled":
-            Navigator.push(context, MaterialPageRoute(builder: (c) => AddDataScreen()));
-            break;
-          case "self-employed":
-            Navigator.push(context, MaterialPageRoute(builder: (c) => MyHomePage()));
-            break;
-          case "contractor":
-            Navigator.push(context, MaterialPageRoute(builder: (c) => Navigation()));
-            break;
-          default:
-            showDialog(
-              context: context,
-              builder: (c) {
-                return ErrorDialog(
-                  message: "Unknown status.",
-                );
-              },
-            );
-            break;
-        }
-      } else {
-        _auth.signOut();
-        Navigator.pop(context);
-        Navigator.push(context, MaterialPageRoute(builder: (c) => const MergedLoginScreen()));
-
-        showDialog(
-          context: context,
-          builder: (c) {
-            return ErrorDialog(
-              message: "No record found.",
-            );
-          },
-        );
-      }
     });
   }
+
 
 
   @override
@@ -533,116 +291,41 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
                     ],
                   ),
                 ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(0, 8, 0, 0),
-                child: Text(
-                  "Or Continue with Email",
-                  textAlign: TextAlign.start,
-                  overflow: TextOverflow.clip,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w400,
-                    fontStyle: FontStyle.normal,
-                    fontSize: 14,
-                    color: Color(0xff9e9e9e),
-                  ),
-                ),
-              ),
 
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                child: Align(
-                  alignment: Alignment.center,
-                  child: Visibility(
-                    visible: !_isEmailSent,
-                    child: TextField(
-                      controller: emailController,
-                      obscureText: false,
-                      textAlign: TextAlign.start,
-                      maxLines: 1,
-                      decoration: InputDecoration(
-                        labelText: "Email",
-                        filled: true,
-                        fillColor: Color(0x00f2f2f3),
-                        isDense: false,
-                        contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                      ),
+              if (Platform.isIOS || Platform.isAndroid) // Check if the platform is iOS or Android
+                Padding(
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => EmailLoginScreen()));
+                      // Add your logic for signing in with email here
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.black),
                     ),
-                  ),
-                ),
-              ),
-
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                child: Align(
-                  alignment: Alignment.center,
-                  child: _isEmailSent
-                      ? Column(
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 16),
-                        child: TextField(
-                          controller: codeController,
-                          obscureText: false,
-                          textAlign: TextAlign.start,
-                          maxLines: 1,
-                          decoration: InputDecoration(
-                            labelText: "Verification Code",
-                            filled: true,
-                            fillColor: Color(0x00f2f2f3),
-                            isDense: false,
-                            contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Continue with Email",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w400,
+                            fontStyle: FontStyle.normal,
+                            fontSize: 14,
+                            color: Colors.black,
                           ),
                         ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.only(top: 16),
-                        child: MaterialButton(
-                          onPressed: verify,
-                          color: Color(0xffffffff),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
-                            side: BorderSide(color: Color(0xff9e9e9e), width: 1),
-                          ),
-                          padding: EdgeInsets.all(16),
-                          child: Text(
-                            "Submit",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w400,
-                              fontStyle: FontStyle.normal,
-                            ),
-                          ),
-                          textColor: Color(0xff000000),
-                          height: 40,
-                          minWidth: 140,
+                        SizedBox(width: 8),
+                        Icon(
+                          Icons.email, // You can use any email-related icon here
+                          color: Colors.black, // Icon color
+                          size: 24,
                         ),
-                      ),
-                    ],
-                  )
-                      : MaterialButton(
-                    onPressed: sendEmail,
-                    color: Color(0xffffffff),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                      side: BorderSide(color: Color(0xff9e9e9e), width: 1),
+                      ],
                     ),
-                    padding: EdgeInsets.all(16),
-                    child: Text(
-                      "Send Code",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                        fontStyle: FontStyle.normal,
-                      ),
-                    ),
-                    textColor: Color(0xff000000),
-                    height: 40,
-                    minWidth: 140,
                   ),
                 ),
-              ),
+
 
             ],
           ),
@@ -650,5 +333,6 @@ class _MergedLoginScreenState extends State<MergedLoginScreen> {
       ),
     );
   }
+
 
 }

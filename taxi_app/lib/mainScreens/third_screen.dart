@@ -1,60 +1,15 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:taxi_app/mainScreens/bank.dart';
-import 'package:taxi_app/mainScreens/law_support.dart';
-import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:taxi_app/authentication/auth_screen.dart';
+import 'package:taxi_app/mainScreens/message_support.dart';
+import 'package:taxi_app/mainScreens/qr_code.dart';
+import 'package:taxi_app/rental.dart';
+import 'package:taxi_app/widgets/My_Settings.dart';
 
 
-class TransactionDialog extends StatelessWidget {
-  final List<Map<String, dynamic>> transactions;
 
-  TransactionDialog({required this.transactions});
-
-  @override
-  Widget build(BuildContext context) {
-    // Inside the build method of your AlertDialog widget
-    return AlertDialog(
-      title: Text('Transactions'),
-      content: SingleChildScrollView(
-        scrollDirection: Axis.horizontal, // Allow horizontal scrolling
-        child: SingleChildScrollView(
-          child: DataTable(
-            columns: [
-              DataColumn(label: Text('Provider')),
-              DataColumn(label: Text('Amount')),
-              DataColumn(label: Text('Date')), // New column
-              DataColumn(label: Text('Deliveries Complated')),
-            ],
-            rows: transactions.map((transaction) {
-              // Format the timestamp into a readable date format
-              String formattedDate = DateFormat('dd MMM').format(transaction['timestamp'].toDate());
-
-
-              return DataRow(cells: [
-                DataCell(Text(transaction['provider'].toString())),
-                DataCell(Text('\$${transaction['money']}')),
-                DataCell(Text(formattedDate)),
-                // Modified line to include the dollar sign
-                DataCell(Text(transaction['delivery'].toString())), // New cell for the provider column
-              ]);
-            }).toList(),
-          ),
-        ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          child: Text('Close'),
-        ),
-      ],
-    );
-  }
-
-}
 
 class ThirdScreen extends StatefulWidget {
 
@@ -63,42 +18,29 @@ class ThirdScreen extends StatefulWidget {
   _ThirdScreenState createState() => _ThirdScreenState();
 }
 
-
-
 class _ThirdScreenState extends State<ThirdScreen> {
   String buttonText = 'Balance'; // Default text for balance button
-  String ratingButtonText = 'Rating'; // Default text for rating button
 
-  List<Map<String, dynamic>> _transactions = [
-    {'money': '1996', 'rating': '88'}
-  ]; // Sample transactions data
+  String _balance = '0'; // Variable to store the balance
+
 
   @override
   void initState() {
     super.initState();
-    // Fetch transactions when the screen is initialized
-    if (_transactions.isNotEmpty) {
-      int balance = int.parse(_transactions.last['money']);
-      buttonText = 'Balance - $balance';
-      int rating = int.parse(_transactions.last['rating']);
-      ratingButtonText = 'Rating - $rating';
-    } else {
-      buttonText = 'No transactions available';
-      ratingButtonText = 'No rating available';
-    }
+    // Call fetchTransactions when the screen loads
+    fetchTransactions();
   }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
-      body:
-
-      Padding(
+        body: SingleChildScrollView(
+        child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
             SizedBox(height: 40),
             Text(
               'Balance',
@@ -130,7 +72,7 @@ class _ThirdScreenState extends State<ThirdScreen> {
                           SizedBox(width: 10), // Add some space between the icon and text
                           // Text for the balance amount
                           Text(
-                            '\$${_transactions.last['money']}', // Display balance amount
+                            '\₪$_balance', // Display balance amount
                             style: TextStyle(
                               color: Colors.white, // Text color
                               fontWeight: FontWeight.bold,
@@ -139,11 +81,9 @@ class _ThirdScreenState extends State<ThirdScreen> {
                           ),
                         ],
                       ),
-
-
                     ],
                   ),
-                  SizedBox(height: 100),
+                  SizedBox(height: 110),
                   Text(
                     '**** **** **** 5488',
                     style: TextStyle(
@@ -151,7 +91,6 @@ class _ThirdScreenState extends State<ThirdScreen> {
                       color: Colors.white,
                     ),
                   ),
-
                   FutureBuilder<String>(
                     future: _getName(),
                     builder: (context, snapshot) {
@@ -171,85 +110,93 @@ class _ThirdScreenState extends State<ThirdScreen> {
                 ],
               ),
             ),
-
             SizedBox(height: 20),
-            // Button blocks
+
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () async {
-                    // Fetch transaction data from Firestore
-                    await fetchTransactions();
-                    // Show dialog with transaction table
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return TransactionDialog(transactions: _transactions);
-                      },
-                    );
-                  },
-                  icon: Icon(Icons.list),
-                  label: Text('Transactions'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black, side: BorderSide(color: Colors.black), // Border color
-                    padding: EdgeInsets.all(16.0), // Button padding
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    // Navigate to Edit Bank Screen
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => EditBankScreen()),
+                      MaterialPageRoute(builder: (context) => RentalScreen()),
                     );
                   },
-                  icon: Icon(Icons.monetization_on),
-                  label: Text('Edit Bank'),
+                  icon: Icon(Icons.directions_bike),
+                  label: Text('Rental Options'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black, side: BorderSide(color: Colors.black), // Border color
+                    foregroundColor: Colors.black,
+                    side: BorderSide(color: Colors.black), // Border color
                     padding: EdgeInsets.all(16.0), // Button padding
                   ),
                 ),
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => YourScreen()),
+                    );
+                  },
+                  icon: Icon(Icons.settings),
+                  label: Text('Repairs'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.black,
+                    side: BorderSide(color: Colors.black), // Border color
+                    padding: EdgeInsets.all(16.0), // Button padding
+                  ),
+                ),
+              ),
+            ),
+
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    // Add your action for Insurance]
-                    _launchURL('https://theholylabs.com'); // Replace the URL with your terms and conditions URL
-
-
+                    // Navigate to My Settings Screen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => MyDrawerPage()),
+                    );
                   },
-                  icon: Icon(Icons.gavel),
-                  label: Text('Law Support'),
+                  icon: Icon(Icons.account_circle),
+                  label: Text('My Profile'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black, side: BorderSide(color: Colors.black), // Border color
+                    foregroundColor: Colors.black,
+                    side: BorderSide(color: Colors.black), // Border color
                     padding: EdgeInsets.all(16.0), // Button padding
                   ),
                 ),
               ),
             ),
+
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: Icon(Icons.star),
-                  label: Text(ratingButtonText),
+                  onPressed: () async {
+                    // Pass the uid to ChatRoom widget
+                    SharedPreferences prefs = await SharedPreferences.getInstance();
+                    String uid = prefs.getString('uid') ?? ''; // Replace with the actual uid value
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SendMessagePage()),
+                    );
+                  },
+                  icon: Icon(Icons.message),
+                  label: Text('Law Support'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black, side: BorderSide(color: Colors.black), // Border color
+                    foregroundColor: Colors.black,
+                    side: BorderSide(color: Colors.black), // Border color
                     padding: EdgeInsets.all(16.0), // Button padding
                   ),
                 ),
@@ -257,48 +204,80 @@ class _ThirdScreenState extends State<ThirdScreen> {
             ),
 
 
+
+            ListTile(
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 4), // Adjust padding as needed
+              leading: Icon(Icons.exit_to_app),
+              title: Text('Sign Out'),
+              onTap: () {
+                signOutAndClearPrefs(context);
+              },
+            ),
           ],
         ),
       ),
+        ),
     );
   }
 
-  // Function to fetch transaction data from Firestore
   Future<void> fetchTransactions() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String userId = prefs.getString('uid') ?? '';
+    User? user = FirebaseAuth.instance.currentUser;
 
-    if (userId.isNotEmpty) {
+    if (user != null) {
       // Reference to the user's document in Firestore
-      DocumentReference userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+      DocumentReference userRef = FirebaseFirestore.instance.collection('contractors').doc(user.uid);
 
-      // Fetch data from the "transactions" subcollection under the user's document
-      QuerySnapshot querySnapshot = await userRef.collection('transactions').get();
+      // Reference to the "invoices" subcollection for the user
+      CollectionReference invoicesRef = userRef.collection('invoices');
 
-      // Extract data from documents
-      _transactions = querySnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+      // Query to get only paid invoices
+      QuerySnapshot paidInvoicesSnapshot = await invoicesRef.where('status', isEqualTo: 'paid').get();
+
+      // Calculate the balance based on the sum of paid invoices
+      double balance = 0;
+
+      // Iterate over each paid invoice
+      for (DocumentSnapshot invoice in paidInvoicesSnapshot.docs) {
+        // Ensure invoice data is not null and is of the expected type
+        Map<String, dynamic>? invoiceData = invoice.data() as Map<String, dynamic>?;
+
+        if (invoiceData != null) {
+          // Parse 'total' from String to double before adding it to the balance
+          double? total = invoiceData['total'] as double?;
+
+          if (total != null) {
+            // Add the total amount to the balance
+            balance += total;
+          }
+        }
+      }
+
+      // Update the balance locally
+      setState(() {
+        if (balance % 1 == 0) {
+          // If balance is an integer, display it without the decimal part
+          _balance = balance.toInt().toString();
+        } else {
+          // Otherwise, display the balance with 2 decimal places
+          _balance = balance.toStringAsFixed(2);
+        }
+      });
     }
   }
 
   // Function to get name from shared preferences
   Future<String> _getName() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString('name') ?? 'Unknown';
+    return prefs.getString('name') ?? 'Pedro Paskal';
   }
 }
 
-
-// Function to launch the URL
-void _launchURL(String url) async {
-  if (await launch(url)) {
-    await launch(url);
-  } else {
-    throw 'Could not launch $url';
-  }
-}
-
-void main() {
-  runApp(MaterialApp(
-    home: ThirdScreen(),
-  ));
+Future<void> signOutAndClearPrefs(BuildContext context) async {
+  await FirebaseAuth.instance.signOut();
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.clear();
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (context) => LoginScreen()),
+  );
 }

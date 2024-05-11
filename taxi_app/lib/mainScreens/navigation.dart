@@ -1,16 +1,9 @@
-import 'dart:convert';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:taxi_app/authentication/registration.dart';
-import 'package:taxi_app/mainScreens/bank.dart';
-import 'package:taxi_app/mainScreens/bills.dart';
-import 'package:taxi_app/mainScreens/documents.dart';
-import 'package:taxi_app/mainScreens/home_screen.dart';
-import 'package:taxi_app/mainScreens/rental.dart';
-import 'package:taxi_app/mainScreens/secon_screen.dart';
-import 'package:taxi_app/widgets/my_drawer.dart';
+import 'package:taxi_app/invoice.dart';
+import 'package:taxi_app/mainScreens/second_screen.dart';
 import '../authentication/auth_screen.dart';
 import 'third_screen.dart';
 
@@ -29,7 +22,7 @@ class _NavigationState extends State<Navigation> {
     await prefs.clear();
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => MergedLoginScreen()),
+      MaterialPageRoute(builder: (context) => LoginScreen()),
     );
   }
 
@@ -43,9 +36,10 @@ class _NavigationState extends State<Navigation> {
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          MyHomePage(),
+          InvoiceGenerator(),
+
+        ThirdScreen(),
           ScheduleScreen(),
-        ThirdScreen()
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -57,16 +51,18 @@ class _NavigationState extends State<Navigation> {
         },
         items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.perm_identity_outlined),
-            label: 'Account',
+            icon: Icon(Icons.list),
+            label: 'Invoice',
           ),
+
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_add_outlined),
+            label: 'Account', // Initial label while waiting for future
+          ),
+
           BottomNavigationBarItem(
             icon: Icon(Icons.schedule),
             label: 'Schedule',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.money_sharp),
-            label: 'Earnings', // Initial label while waiting for future
           ),
         ],
       ),
