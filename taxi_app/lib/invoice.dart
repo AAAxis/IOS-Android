@@ -166,7 +166,7 @@ class _InvoiceGeneratorState extends State<InvoiceGenerator> with SingleTickerPr
       appBar: AppBar(
         title: Text('Invoice Generator'),
         leading: IconButton(
-          icon: Icon(Icons.filter_list_outlined),
+          icon: Icon(Icons.library_books_sharp),
           onPressed: () {
            // This pops the current route off the navigator stack
           },
@@ -196,6 +196,7 @@ class _InvoiceGeneratorState extends State<InvoiceGenerator> with SingleTickerPr
                   _buildSellerTile(),
                   _buildTile(
                     title: 'Add Customer',
+                   // Set initiallyExpanded to true
                     children: [
                       _buildTextField('Customer Name', customerNameController),
                       _buildTextField('Customer Location', customerLocationController),
@@ -290,6 +291,7 @@ class _InvoiceGeneratorState extends State<InvoiceGenerator> with SingleTickerPr
         title,
         style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
       ),
+      initiallyExpanded: true,
       children: [
         ...children,
       ],

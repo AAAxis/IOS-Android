@@ -17,48 +17,85 @@ class ScheduleScreen extends StatefulWidget {
 class _ScheduleScreenState extends State<ScheduleScreen> {
   bool isSaved = false;
 
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 50.0, left: 20.0, right: 20.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  isSaved ? 'Saved Slots' : 'Schedule',
-                  style: TextStyle(fontSize: 27),
-                ),
-                Switch(
-                  value: isSaved,
-                  onChanged: (value) {
-                    setState(() {
-                      isSaved = value;
-                    });
-                  },
-                ),
-              ],
+    return DefaultTabController(
+      length: 7,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(isSaved ? 'Saved Slots' : 'Schedule'),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 16.0),
+              child: Switch(
+                value: isSaved,
+                onChanged: (value) {
+                  setState(() {
+                    isSaved = value;
+                  });
+                },
+              ),
             ),
+          ],
+          bottom: !isSaved
+              ? TabBar(
+            tabs: [
+              Tab(text: 'Monday'),
+              Tab(text: 'Tuesday'),
+              Tab(text: 'Wednesday'),
+              Tab(text: 'Thursday'),
+              Tab(text: 'Friday'),
+              Tab(text: 'Saturday'),
+              Tab(text: 'Sunday'),
+            ],
+          )
+              : null,
+          leading: IconButton(
+            icon: Icon(Icons.timelapse_outlined),
+            onPressed: () {
+
+            },
           ),
-          Expanded(
-            child: isSaved ? SavedScheduleList() : SlotList(),
-          ),
-        ],
+        ),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+
+            Expanded(
+              child: isSaved ? SavedScheduleList() : TabBarView(
+                children: [
+                  SlotList(day: 'Monday'),
+                  SlotList(day: 'Tuesday'),
+                  SlotList(day: 'Wednesday'),
+                  SlotList(day: 'Thursday'),
+                  SlotList(day: 'Friday'),
+                  SlotList(day: 'Saturday'),
+                  SlotList(day: 'Sunday'),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
-
 }
 
 class SlotList extends StatelessWidget {
+  final String? day;
+
+  SlotList({this.day});
+
   @override
   Widget build(BuildContext context) {
+    Query query = FirebaseFirestore.instance.collection('schedules');
+
+    if (day != null) {
+      query = query.where('day', isEqualTo: day); // Filter query by day if provided
+    }
+
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('schedules').snapshots(),
+      stream: query.snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
@@ -104,11 +141,9 @@ class SlotRow extends StatelessWidget {
                   '${data['provider']}',
                   style: TextStyle(fontSize: 12.0),
                 ),
-
               ],
             ),
           ),
-
           SizedBox(width: 8.0),
           IconButton(
             icon: Icon(Icons.archive),
@@ -116,8 +151,6 @@ class SlotRow extends StatelessWidget {
               _moveToSaved(context, data);
             },
           ),
-         // Add some space between elements
-
         ],
       ),
     );
@@ -126,7 +159,7 @@ class SlotRow extends StatelessWidget {
   void _moveToSaved(BuildContext context, Map<String, dynamic> data) async {
     try {
       // Retrieve UID from preferences
-      String? uid =  sharedPreferences!.getString("uid") ?? "None";// Replace with your method to get UID from preferences
+      String? uid = sharedPreferences!.getString("uid") ?? "None"; // Replace with your method to get UID from preferences
 
       if (uid != null) {
         // Construct the path to the subcollection
@@ -151,7 +184,6 @@ class SlotRow extends StatelessWidget {
       );
     }
   }
-
 }
 
 class SavedScheduleList extends StatelessWidget {
@@ -218,11 +250,9 @@ class SavedScheduleRow extends StatelessWidget {
                   '${data['provider']}',
                   style: TextStyle(fontSize: 12.0),
                 ),
-
               ],
             ),
           ),
-
           SizedBox(width: 8.0),
           IconButton(
             icon: Icon(Icons.delete),
@@ -230,12 +260,9 @@ class SavedScheduleRow extends StatelessWidget {
               _deleteSchedule(context, docId);
             },
           ),
-          // Add some space between elements
-
         ],
       ),
     );
-
   }
 
   void _deleteSchedule(BuildContext context, String docId) async {
@@ -266,5 +293,4 @@ class SavedScheduleRow extends StatelessWidget {
       );
     }
   }
-
 }

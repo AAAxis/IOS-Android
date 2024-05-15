@@ -51,6 +51,7 @@ class _MySplashScreenState extends State<MySplashScreen> {
           MaterialPageRoute(builder: (context) => Navigation()),
         );
       } else {
+        _requestPermissionManually();
         // User is not authenticated, navigate to the login screen
         Navigator.pushReplacement(
           context,
